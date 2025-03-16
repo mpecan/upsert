@@ -3,8 +3,6 @@ package si.pecan.upsert.repository
 import org.springframework.jdbc.core.ConnectionCallback
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import si.pecan.upsert.annotation.UpsertKey
-import si.pecan.upsert.annotation.UpsertValue
 import si.pecan.upsert.dialect.UpsertDialect
 import si.pecan.upsert.processor.UpsertProcessor
 import java.lang.reflect.Field
@@ -126,7 +124,6 @@ class JdbcUpsertOperations(
     private fun getKeyFields(entityClass: Class<*>): List<Field> {
         return entityClass.declaredFields
             .filter { 
-                it.isAnnotationPresent(UpsertKey::class.java) ||
                 it.isAnnotationPresent(Id::class.java) ||
                 it.isAnnotationPresent(EmbeddedId::class.java)
             }
@@ -139,15 +136,7 @@ class JdbcUpsertOperations(
      * @return The list of value fields
      */
     private fun getValueFields(entityClass: Class<*>): List<Field> {
-        val valueFieldsWithAnnotation = entityClass.declaredFields
-            .filter { it.isAnnotationPresent(UpsertValue::class.java) }
-
-        // If we have fields with @UpsertValue, use those
-        if (valueFieldsWithAnnotation.isNotEmpty()) {
-            return valueFieldsWithAnnotation
-        }
-
-        // Otherwise, use all non-key fields
+        // Use all non-key fields
         val keyFieldNames = getKeyFields(entityClass).map { it.name }
         return entityClass.declaredFields.filter { !keyFieldNames.contains(it.name) }
     }
@@ -190,21 +179,11 @@ class JdbcUpsertOperations(
     private fun <T : Any> extractParameterValues(entity: T): List<Any?> {
         val entityClass = entity.javaClass
 
-        // Get key fields (using both custom and JPA annotations)
+        // Get key fields (using JPA annotations)
         val keyFields = getKeyFields(entityClass)
 
-        // Get value fields
-        val valueFieldsWithAnnotation = entityClass.declaredFields
-            .filter { it.isAnnotationPresent(UpsertValue::class.java) }
-
-        // If we have fields with @UpsertValue, use those
-        val valueFields = if (valueFieldsWithAnnotation.isNotEmpty()) {
-            valueFieldsWithAnnotation
-        } else {
-            // Otherwise, use all non-key fields
-            val keyFieldNames = keyFields.map { it.name }
-            entityClass.declaredFields.filter { !keyFieldNames.contains(it.name) }
-        }
+        // Get value fields (all non-key fields)
+        val valueFields = getValueFields(entityClass)
 
         // Combine key and value fields
         val allFields = keyFields + valueFields

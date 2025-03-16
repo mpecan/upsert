@@ -1,11 +1,6 @@
 package si.pecan.upsert.processor
 
-import si.pecan.upsert.annotation.Upsert
-import si.pecan.upsert.annotation.UpsertKey
-import si.pecan.upsert.annotation.UpsertValue
 import si.pecan.upsert.dialect.UpsertDialect
-import java.lang.reflect.Field
-import java.lang.reflect.Method
 import javax.persistence.EmbeddedId
 import javax.persistence.Id
 
@@ -86,8 +81,7 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
      */
     private fun getKeyColumns(entityClass: Class<*>): List<String> {
         return entityClass.declaredFields
-            .filter { 
-                it.isAnnotationPresent(UpsertKey::class.java) ||
+            .filter {
                 it.isAnnotationPresent(Id::class.java) ||
                 it.isAnnotationPresent(EmbeddedId::class.java)
             }
@@ -102,15 +96,6 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
      * @return The list of column names
      */
     private fun getValueColumns(entityClass: Class<*>): List<String> {
-        val fieldsWithUpsertValue = entityClass.declaredFields
-            .filter { it.isAnnotationPresent(UpsertValue::class.java) }
-            .map { it.name }
-
-        // If we have fields with @UpsertValue, use those
-        if (fieldsWithUpsertValue.isNotEmpty()) {
-            return fieldsWithUpsertValue
-        }
-
         // Otherwise, use all non-key fields
         val keyColumns = getKeyColumns(entityClass)
         return entityClass.declaredFields

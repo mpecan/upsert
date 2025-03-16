@@ -31,27 +31,6 @@ dependencies {
 
 You can use either custom annotations or JPA annotations to configure your entity for upsert operations.
 
-#### Using custom annotations
-
-```kotlin
-import si.pecan.upsert.annotation.UpsertKey
-import si.pecan.upsert.annotation.UpsertValue
-
-data class MyEntity(
-    @UpsertKey
-    val id: Long,
-
-    @UpsertValue
-    val name: String,
-
-    @UpsertValue
-    val description: String? = null,
-
-    @UpsertValue
-    val active: Boolean = true
-)
-```
-
 #### Using JPA annotations
 
 ```kotlin

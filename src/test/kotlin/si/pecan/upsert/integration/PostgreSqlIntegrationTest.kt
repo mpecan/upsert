@@ -10,7 +10,6 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import si.pecan.upsert.dialect.PostgreSqlUpsertDialect
 import si.pecan.upsert.entity.JpaTestEntity
-import si.pecan.upsert.entity.TestEntity
 import si.pecan.upsert.repository.JdbcUpsertOperations
 import javax.sql.DataSource
 
@@ -49,16 +48,6 @@ class PostgreSqlIntegrationTest {
         // Set up the upsert operations
         upsertOperations = JdbcUpsertOperations(jdbcTemplate, PostgreSqlUpsertDialect())
 
-        // Create the test tables
-        jdbcTemplate.execute("""
-            CREATE TABLE IF NOT EXISTS test_entity (
-                id BIGINT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                description VARCHAR(255),
-                active BOOLEAN NOT NULL
-            )
-        """)
-
         jdbcTemplate.execute("""
             CREATE TABLE IF NOT EXISTS jpa_test_entity (
                 id BIGINT PRIMARY KEY,
@@ -67,48 +56,6 @@ class PostgreSqlIntegrationTest {
                 active BOOLEAN NOT NULL
             )
         """)
-    }
-
-    @Test
-    fun `should insert new entity`() {
-        // Given
-        val entity = TestEntity(1, "Test Entity", "Test Description", true)
-
-        // When
-        val rowsAffected = upsertOperations.upsert(entity, "test_entity")
-
-        // Then
-        assertEquals(1, rowsAffected)
-
-        // Verify the entity was inserted
-        val result = jdbcTemplate.queryForMap("SELECT * FROM test_entity WHERE id = ?", 1)
-        assertEquals(1L, result["id"])
-        assertEquals("Test Entity", result["name"])
-        assertEquals("Test Description", result["description"])
-        assertEquals(true, result["active"])
-    }
-
-    @Test
-    fun `should update existing entity`() {
-        // Given
-        val entity1 = TestEntity(2, "Original Entity", "Original Description", true)
-        val entity2 = TestEntity(2, "Updated Entity", "Updated Description", false)
-
-        // Insert the original entity
-        upsertOperations.upsert(entity1, "test_entity")
-
-        // When
-        val rowsAffected = upsertOperations.upsert(entity2, "test_entity")
-
-        // Then
-        assertEquals(1, rowsAffected)
-
-        // Verify the entity was updated
-        val result = jdbcTemplate.queryForMap("SELECT * FROM test_entity WHERE id = ?", 2)
-        assertEquals(2L, result["id"])
-        assertEquals("Updated Entity", result["name"])
-        assertEquals("Updated Description", result["description"])
-        assertEquals(false, result["active"])
     }
 
     @Test
@@ -157,19 +104,19 @@ class PostgreSqlIntegrationTest {
     fun `should upsert multiple entities`() {
         // Given
         val entities = listOf(
-            TestEntity(5, "Entity 5", "Description 5", true),
-            TestEntity(6, "Entity 6", "Description 6", false),
-            TestEntity(7, "Entity 7", "Description 7", true)
+            JpaTestEntity(5, "Entity 5", "Description 5", true),
+            JpaTestEntity(6, "Entity 6", "Description 6", false),
+            JpaTestEntity(7, "Entity 7", "Description 7", true)
         )
 
         // When
-        val rowsAffected = upsertOperations.upsertAll(entities, "test_entity")
+        val rowsAffected = upsertOperations.upsertAll(entities, "jpa_test_entity")
 
         // Then
         assertEquals(3, rowsAffected) // 1 row affected per entity inserted
 
         // Verify the entities were inserted
-        val results = jdbcTemplate.queryForList("SELECT * FROM test_entity WHERE id IN (5, 6, 7) ORDER BY id")
+        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (5, 6, 7) ORDER BY id")
         assertEquals(3, results.size)
 
         assertEquals(5L, results[0]["id"])
@@ -192,26 +139,26 @@ class PostgreSqlIntegrationTest {
     fun `should update multiple existing entities`() {
         // Given
         val originalEntities = listOf(
-            TestEntity(8, "Original Entity 8", "Original Description 8", true),
-            TestEntity(9, "Original Entity 9", "Original Description 9", true)
+            JpaTestEntity(8, "Original Entity 8", "Original Description 8", true),
+            JpaTestEntity(9, "Original Entity 9", "Original Description 9", true)
         )
 
         val updatedEntities = listOf(
-            TestEntity(8, "Updated Entity 8", "Updated Description 8", false),
-            TestEntity(9, "Updated Entity 9", "Updated Description 9", false)
+            JpaTestEntity(8, "Updated Entity 8", "Updated Description 8", false),
+            JpaTestEntity(9, "Updated Entity 9", "Updated Description 9", false)
         )
 
         // Insert the original entities
-        upsertOperations.upsertAll(originalEntities, "test_entity")
+        upsertOperations.upsertAll(originalEntities, "jpa_test_entity")
 
         // When
-        val rowsAffected = upsertOperations.upsertAll(updatedEntities, "test_entity")
+        val rowsAffected = upsertOperations.upsertAll(updatedEntities, "jpa_test_entity")
         
         // Then
         assertEquals(2, rowsAffected) // 1 row affected per entity updated
 
         // Verify the entities were updated
-        val results = jdbcTemplate.queryForList("SELECT * FROM test_entity WHERE id IN (8, 9) ORDER BY id")
+        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (8, 9) ORDER BY id")
         assertEquals(2, results.size)
 
         assertEquals(8L, results[0]["id"])
