@@ -24,9 +24,19 @@ class ExtendedBeanPropertySqlParameterSource(bean: Any) : BeanPropertySqlParamet
     // The bean being wrapped
     private val beanInstance = bean
 
+    // Cache for fields by parameter name
+    private val fieldCache = mutableMapOf<String, Field?>()
+
+    // Cache for converter instances by converter class
+    private val converterCache = mutableMapOf<Class<*>, AttributeConverter<Any, Any>>()
+
+    // Cache for field annotations by field
+    private val convertAnnotationCache = mutableMapOf<Field, Convert?>()
+
     /**
      * Override getSqlType to provide SQL types for additional Java/Kotlin types.
      * This method is called by Spring's JdbcTemplate to determine the SQL type of a parameter.
+     * Uses caches to avoid repeated reflection.
      *
      * @param paramName The name of the parameter
      * @return The SQL type as defined in java.sql.Types
@@ -34,31 +44,45 @@ class ExtendedBeanPropertySqlParameterSource(bean: Any) : BeanPropertySqlParamet
     override fun getSqlType(paramName: String): Int {
         // Try to find the field in the bean class
         try {
-            val beanClass = beanInstance.javaClass
-            val field = beanClass.getDeclaredField(paramName)
-            field.isAccessible = true
+            // Get the field from cache or find it
+            val field = fieldCache.getOrPut(paramName) {
+                try {
+                    val beanClass = beanInstance.javaClass
+                    val field = beanClass.getDeclaredField(paramName)
+                    field.isAccessible = true
+                    field
+                } catch (e: Exception) {
+                    null
+                }
+            }
 
-            // Check if the field has a @Convert annotation
-            val convertAnnotation = field.getAnnotation(Convert::class.java)
-            if (convertAnnotation != null) {
-                // Get the converter class
-                val converterClass = convertAnnotation.converter.java
+            if (field != null) {
+                // Check if the field has a @Convert annotation (from cache)
+                val convertAnnotation = convertAnnotationCache.getOrPut(field) {
+                    field.getAnnotation(Convert::class.java)
+                }
 
-                // Create a new instance of the converter
-                val converter = converterClass.getDeclaredConstructor().newInstance()
+                if (convertAnnotation != null) {
+                    // Get the converter class
+                    val converterClass = convertAnnotation.converter.java
 
-                // Get the value
-                val value = super.getValue(paramName)
+                    // Get or create the converter instance
+                    val typedConverter = converterCache.getOrPut(converterClass) {
+                        @Suppress("UNCHECKED_CAST")
+                        converterClass.getDeclaredConstructor().newInstance() as AttributeConverter<Any, Any>
+                    }
 
-                // If the value is null, we can't determine the type from it
-                if (value != null) {
-                    // Apply the converter to the value
-                    @Suppress("UNCHECKED_CAST")
-                    val typedConverter = converter as AttributeConverter<Any, Any>
-                    val convertedValue = typedConverter.convertToDatabaseColumn(value)
+                    // Get the value
+                    val value = super.getValue(paramName)
 
-                    // Determine the SQL type based on the converted value
-                    return getSqlTypeForValue(convertedValue)
+                    // If the value is null, we can't determine the type from it
+                    if (value != null) {
+                        // Apply the converter to the value
+                        val convertedValue = typedConverter.convertToDatabaseColumn(value)
+
+                        // Determine the SQL type based on the converted value
+                        return getSqlTypeForValue(convertedValue)
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -98,6 +122,7 @@ class ExtendedBeanPropertySqlParameterSource(bean: Any) : BeanPropertySqlParamet
     /**
      * Override getValue to handle additional types that might need special conversion.
      * This method is called by Spring's JdbcTemplate to get the value of a parameter.
+     * Uses caches to avoid repeated reflection.
      *
      * @param paramName The name of the parameter
      * @return The value of the parameter, possibly converted to a type that JDBC can handle
@@ -112,23 +137,37 @@ class ExtendedBeanPropertySqlParameterSource(bean: Any) : BeanPropertySqlParamet
 
         // Try to find the field in the bean class
         try {
-            val beanClass = beanInstance.javaClass
-            val field = beanClass.getDeclaredField(paramName)
-            field.isAccessible = true
+            // Get the field from cache or find it
+            val field = fieldCache.getOrPut(paramName) {
+                try {
+                    val beanClass = beanInstance.javaClass
+                    val field = beanClass.getDeclaredField(paramName)
+                    field.isAccessible = true
+                    field
+                } catch (e: Exception) {
+                    null
+                }
+            }
 
-            // Check if the field has a @Convert annotation
-            val convertAnnotation = field.getAnnotation(Convert::class.java)
-            if (convertAnnotation != null) {
-                // Get the converter class
-                val converterClass = convertAnnotation.converter.java
+            if (field != null) {
+                // Check if the field has a @Convert annotation (from cache)
+                val convertAnnotation = convertAnnotationCache.getOrPut(field) {
+                    field.getAnnotation(Convert::class.java)
+                }
 
-                // Create a new instance of the converter
-                val converter = converterClass.getDeclaredConstructor().newInstance()
+                if (convertAnnotation != null) {
+                    // Get the converter class
+                    val converterClass = convertAnnotation.converter.java
 
-                // Apply the converter to the value
-                @Suppress("UNCHECKED_CAST")
-                val typedConverter = converter as AttributeConverter<Any, Any>
-                return typedConverter.convertToDatabaseColumn(value)
+                    // Get or create the converter instance
+                    val typedConverter = converterCache.getOrPut(converterClass) {
+                        @Suppress("UNCHECKED_CAST")
+                        converterClass.getDeclaredConstructor().newInstance() as AttributeConverter<Any, Any>
+                    }
+
+                    // Apply the converter to the value
+                    return typedConverter.convertToDatabaseColumn(value)
+                }
             }
         } catch (e: Exception) {
             // If any exception occurs, fall back to default conversion

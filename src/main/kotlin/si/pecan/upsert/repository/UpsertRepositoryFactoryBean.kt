@@ -41,7 +41,7 @@ class UpsertRepositoryFactoryBean<T : Repository<S, ID>, S : Any, ID : Serializa
 
             // If the repository extends UpsertRepository, add the UpsertRepositoryImpl fragment
             if (UpsertRepository::class.java.isAssignableFrom(metadata.repositoryInterface)) {
-                val upsertRepositoryImpl = UpsertRepositoryImpl<Any, Any>()
+                val upsertRepositoryImpl = UpsertRepositoryImpl<Any, Any>(metadata)
                 applicationContext.autowireCapableBeanFactory.autowireBean(upsertRepositoryImpl)
                 val upsertFragment = RepositoryFragment.implemented(
                     UpsertRepository::class.java,

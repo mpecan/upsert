@@ -19,6 +19,35 @@ abstract class AbstractJdbcUpsertOperations(
 
     protected val processor = UpsertProcessor(dialect)
 
+    // Cache for key fields by entity class
+    private val keyFieldsCache = mutableMapOf<Class<*>, List<Field>>()
+
+    // Cache for value fields by entity class
+    private val valueFieldsCache = mutableMapOf<Class<*>, List<Field>>()
+
+    // Store entity class, ID class, and table name
+    protected var entityClass: Class<*>? = null
+    protected var idClass: Class<*>? = null
+    protected var tableName: String? = null
+
+    /**
+     * Initialize the operations with entity class and ID class.
+     * This method should be called once at startup to prepare the operations.
+     *
+     * @param entityClass The entity class
+     * @param idClass The ID class
+     * @param tableName The table name
+     */
+    override fun initialize(entityClass: Class<*>, idClass: Class<*>, tableName: String) {
+        this.entityClass = entityClass
+        this.idClass = idClass
+        this.tableName = tableName
+
+        // Pre-cache key and value fields
+        getKeyFields(entityClass)
+        getValueFields(entityClass)
+    }
+
     /**
      * Perform an upsert operation for the given entity.
      *
@@ -33,28 +62,36 @@ abstract class AbstractJdbcUpsertOperations(
 
     /**
      * Get the key fields from the entity class.
+     * Uses a cache to avoid repeated reflection.
      *
      * @param entityClass The entity class
      * @return The list of key fields
      */
     protected fun getKeyFields(entityClass: Class<*>): List<Field> {
-        return entityClass.declaredFields
-            .filter { 
-                it.isAnnotationPresent(Id::class.java) ||
-                it.isAnnotationPresent(EmbeddedId::class.java)
-            }
+        // Check the cache first
+        return keyFieldsCache.getOrPut(entityClass) {
+            entityClass.declaredFields
+                .filter { 
+                    it.isAnnotationPresent(Id::class.java) ||
+                    it.isAnnotationPresent(EmbeddedId::class.java)
+                }
+        }
     }
 
     /**
      * Get the value fields from the entity class.
+     * Uses a cache to avoid repeated reflection.
      *
      * @param entityClass The entity class
      * @return The list of value fields
      */
     protected fun getValueFields(entityClass: Class<*>): List<Field> {
-        // Use all non-key fields
-        val keyFieldNames = getKeyFields(entityClass).map { it.name }
-        return entityClass.declaredFields.filter { !keyFieldNames.contains(it.name) }
+        // Check the cache first
+        return valueFieldsCache.getOrPut(entityClass) {
+            // Use all non-key fields
+            val keyFieldNames = getKeyFields(entityClass).map { it.name }
+            entityClass.declaredFields.filter { !keyFieldNames.contains(it.name) }
+        }
     }
 
     /**

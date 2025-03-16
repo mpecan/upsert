@@ -5,6 +5,16 @@ package si.pecan.upsert.repository
  */
 interface UpsertOperations {
     /**
+     * Initialize the operations with entity class and ID class.
+     * This method should be called once at startup to prepare the operations.
+     *
+     * @param entityClass The entity class
+     * @param idClass The ID class
+     * @param tableName The table name
+     */
+    fun initialize(entityClass: Class<*>, idClass: Class<*>, tableName: String)
+
+    /**
      * Perform an upsert operation for the given entity.
      *
      * @param entity The entity to upsert

@@ -30,6 +30,18 @@ class JdbcUpsertOperations(
     }
 
     /**
+     * Initialize the operations with entity class and ID class.
+     * Delegates to the appropriate implementation based on the dialect.
+     *
+     * @param entityClass The entity class
+     * @param idClass The ID class
+     * @param tableName The table name
+     */
+    override fun initialize(entityClass: Class<*>, idClass: Class<*>, tableName: String) {
+        delegate.initialize(entityClass, idClass, tableName)
+    }
+
+    /**
      * Perform an upsert operation for the given entity.
      * Delegates to the appropriate implementation based on the dialect.
      *
