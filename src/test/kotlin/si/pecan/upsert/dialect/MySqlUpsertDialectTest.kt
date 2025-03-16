@@ -14,11 +14,11 @@ class MySqlUpsertDialectTest {
     fun `should generate correct upsert SQL for MySQL`() {
         // Given
         val tableName = "test_table"
-        val keyColumns = listOf("id")
-        val valueColumns = listOf("name", "description", "active")
+        val keyColumns = listOf(ColumnInfo("id", "id"))
+        val valueColumns = listOf(ColumnInfo("name", "name"), ColumnInfo("description", "description"), ColumnInfo("active", "active"))
 
         // When
-        val sql = dialect.generateUpsertSql(tableName, keyColumns, valueColumns)
+        val sql = dialect.generateBatchUpsertSql(tableName, keyColumns, valueColumns, 1)
 
         // Then
         val expectedSql = "INSERT INTO test_table (id, name, description, active) VALUES (?, ?, ?, ?) " +
@@ -30,11 +30,11 @@ class MySqlUpsertDialectTest {
     fun `should generate correct upsert SQL for MySQL with multiple key columns`() {
         // Given
         val tableName = "test_table"
-        val keyColumns = listOf("id", "code")
-        val valueColumns = listOf("name", "description", "active")
+        val keyColumns = listOf(ColumnInfo("id", "id"),ColumnInfo("code", "code"))
+        val valueColumns = listOf(ColumnInfo("name", "name"), ColumnInfo("description", "description"), ColumnInfo("active", "active"))
 
         // When
-        val sql = dialect.generateUpsertSql(tableName, keyColumns, valueColumns)
+        val sql = dialect.generateBatchUpsertSql(tableName, keyColumns, valueColumns, 1)
 
         // Then
         val expectedSql = "INSERT INTO test_table (id, code, name, description, active) VALUES (?, ?, ?, ?, ?) " +

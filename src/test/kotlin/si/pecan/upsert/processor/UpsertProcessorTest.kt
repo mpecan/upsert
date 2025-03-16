@@ -24,7 +24,7 @@ class UpsertProcessorTest {
         val sql = processor.processUpsertEntity(JpaTestEntity::class.java, tableName)
 
         // Then
-        val expectedSql = "INSERT INTO jpa_test_entity (id, name, description, active) VALUES (?, ?, ?, ?) " +
+        val expectedSql = "INSERT INTO jpa_test_entity (id, name, description, active) VALUES (:id, :name, :description, :active) " +
                 "ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, active = EXCLUDED.active"
         assertEquals(expectedSql, sql)
     }

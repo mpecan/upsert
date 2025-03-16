@@ -5,28 +5,6 @@ package si.pecan.upsert.dialect
  * Uses the "INSERT ... ON DUPLICATE KEY UPDATE" syntax for upsert operations.
  */
 class MySqlUpsertDialect : UpsertDialect {
-    /**
-     * Generate an upsert SQL statement for MySQL.
-     *
-     * @param tableName The name of the table
-     * @param keyColumns The columns to use as keys for the upsert operation
-     * @param valueColumns The columns to update during the upsert operation
-     * @return The generated SQL statement
-     */
-    override fun generateUpsertSql(
-        tableName: String,
-        keyColumns: List<String>,
-        valueColumns: List<String>
-    ): String {
-        val allColumns = keyColumns + valueColumns
-        val placeholders = allColumns.indices.map { "?" }.joinToString(", ")
-
-        val insertClause = "INSERT INTO $tableName (${allColumns.joinToString(", ")}) VALUES ($placeholders)"
-
-        val updateClause = valueColumns.joinToString(", ") { "$it = VALUES($it)" }
-
-        return "$insertClause ON DUPLICATE KEY UPDATE $updateClause"
-    }
 
     /**
      * Generate a batch upsert SQL statement for MySQL.
@@ -40,8 +18,8 @@ class MySqlUpsertDialect : UpsertDialect {
      */
     override fun generateBatchUpsertSql(
         tableName: String,
-        keyColumns: List<String>,
-        valueColumns: List<String>,
+        keyColumns: List<ColumnInfo>,
+        valueColumns: List<ColumnInfo>,
         batchSize: Int
     ): String {
         val allColumns = keyColumns + valueColumns
@@ -50,9 +28,9 @@ class MySqlUpsertDialect : UpsertDialect {
         // Create placeholders for all entities in the batch
         val allPlaceholders = (1..batchSize).joinToString(", ") { "($placeholdersPerEntity)" }
 
-        val insertClause = "INSERT INTO $tableName (${allColumns.joinToString(", ")}) VALUES $allPlaceholders"
+        val insertClause = "INSERT INTO $tableName (${allColumns.joinToString(", "){it.name}}) VALUES $allPlaceholders"
 
-        val updateClause = valueColumns.joinToString(", ") { "$it = VALUES($it)" }
+        val updateClause = valueColumns.joinToString(", ") { "${it.name} = VALUES(${it.name})" }
 
         return "$insertClause ON DUPLICATE KEY UPDATE $updateClause"
     }

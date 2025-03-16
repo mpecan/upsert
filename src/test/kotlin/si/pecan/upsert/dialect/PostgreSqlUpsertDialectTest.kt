@@ -14,14 +14,15 @@ class PostgreSqlUpsertDialectTest {
     fun `should generate correct upsert SQL for PostgreSQL`() {
         // Given
         val tableName = "test_table"
-        val keyColumns = listOf("id")
-        val valueColumns = listOf("name", "description", "active")
+
+        val keyColumns = listOf(ColumnInfo("id", "id"))
+        val valueColumns = listOf(ColumnInfo("name", "name"), ColumnInfo("description", "description"), ColumnInfo("active", "active"))
 
         // When
-        val sql = dialect.generateUpsertSql(tableName, keyColumns, valueColumns)
+        val sql = dialect.generateBatchUpsertSql(tableName, keyColumns, valueColumns, 1)
 
         // Then
-        val expectedSql = "INSERT INTO test_table (id, name, description, active) VALUES (?, ?, ?, ?) " +
+        val expectedSql = "INSERT INTO test_table (id, name, description, active) VALUES (:id, :name, :description, :active) " +
                 "ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, active = EXCLUDED.active"
         assertEquals(expectedSql, sql)
     }
@@ -30,14 +31,15 @@ class PostgreSqlUpsertDialectTest {
     fun `should generate correct upsert SQL for PostgreSQL with multiple key columns`() {
         // Given
         val tableName = "test_table"
-        val keyColumns = listOf("id", "code")
-        val valueColumns = listOf("name", "description", "active")
+
+        val keyColumns = listOf(ColumnInfo("id", "id"),ColumnInfo("code", "code"))
+        val valueColumns = listOf(ColumnInfo("name", "name"), ColumnInfo("description", "description"), ColumnInfo("active", "active"))
 
         // When
-        val sql = dialect.generateUpsertSql(tableName, keyColumns, valueColumns)
+        val sql = dialect.generateBatchUpsertSql(tableName, keyColumns, valueColumns, 1)
 
         // Then
-        val expectedSql = "INSERT INTO test_table (id, code, name, description, active) VALUES (?, ?, ?, ?, ?) " +
+        val expectedSql = "INSERT INTO test_table (id, code, name, description, active) VALUES (:id, :code, :name, :description, :active) " +
                 "ON CONFLICT (id, code) DO UPDATE SET name = EXCLUDED.name, description = EXCLUDED.description, active = EXCLUDED.active"
         assertEquals(expectedSql, sql)
     }

@@ -7,6 +7,7 @@ import si.pecan.upsert.dialect.UpsertDialect
 import si.pecan.upsert.processor.UpsertProcessor
 import java.lang.reflect.Field
 import java.sql.Connection
+import javax.persistence.Column
 import javax.persistence.EmbeddedId
 import javax.persistence.Id
 
@@ -29,17 +30,7 @@ class JdbcUpsertOperations(
      * @return The number of rows affected
      */
     override fun <T : Any> upsert(entity: T, tableName: String): Int {
-        val entityClass = entity.javaClass
-
-        // Generate the SQL using the processor
-        val sql = processor.processUpsertEntity(entityClass, tableName)
-
-        // Create a parameter source from the entity
-        val paramSource = ExtendedBeanPropertySqlParameterSource(entity)
-
-        // Execute the SQL using NamedParameterJdbcTemplate
-        val namedParameterJdbcTemplate = NamedParameterJdbcTemplate(jdbcTemplate)
-        return namedParameterJdbcTemplate.update(convertSqlToNamed(sql, entityClass), paramSource)
+       return upsertAll(listOf(entity), tableName)
     }
 
     /**
@@ -63,10 +54,7 @@ class JdbcUpsertOperations(
             // we'll use the batchUpdate method with ExtendedBeanPropertySqlParameterSource
 
             // Generate the SQL for a single entity
-            val sql = processor.processUpsertEntity(entityClass, tableName)
-
-            // Convert SQL with positional parameters to named parameters
-            val namedSql = convertSqlToNamed(sql, entityClass)
+            val sql = processor.processBatchUpsertEntity(entityClass, tableName, 1)
 
             // Create parameter sources for each entity
             val paramSources = entities.map { entity -> 
@@ -77,7 +65,7 @@ class JdbcUpsertOperations(
             val namedJdbcTemplate = NamedParameterJdbcTemplate(jdbcTemplate)
 
             // Execute batch update and sum the results
-            val results = namedJdbcTemplate.batchUpdate(namedSql, paramSources)
+            val results = namedJdbcTemplate.batchUpdate(sql, paramSources)
             results.sum()
         } else {
             // Generate the SQL using the processor for batch operations
@@ -141,34 +129,6 @@ class JdbcUpsertOperations(
         return entityClass.declaredFields.filter { !keyFieldNames.contains(it.name) }
     }
 
-    /**
-     * Convert a SQL statement with positional parameters (?) to a SQL statement with named parameters (:param1, :param2, etc.).
-     * This is necessary because BeanPropertySqlParameterSource works with named parameters.
-     *
-     * @param sql The SQL statement with positional parameters
-     * @param entityClass The entity class
-     * @return The SQL statement with named parameters
-     */
-    private fun convertSqlToNamed(sql: String, entityClass: Class<*>): String {
-        // Get key and value fields
-        val keyFields = getKeyFields(entityClass)
-        val valueFields = getValueFields(entityClass)
-        val allFields = keyFields + valueFields
-
-        // Replace each ? with a named parameter
-        var namedSql = sql
-        var paramIndex = 0
-
-        // Simple approach: replace each ? with a named parameter
-        // This works for single entity operations
-        while (namedSql.contains("?") && paramIndex < allFields.size) {
-            val fieldName = allFields[paramIndex].name
-            namedSql = namedSql.replaceFirst("\\?".toRegex(), ":$fieldName")
-            paramIndex++
-        }
-
-        return namedSql
-    }
 
     /**
      * Extract parameter values from the entity.

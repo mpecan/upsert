@@ -1,6 +1,8 @@
 package si.pecan.upsert.processor
 
+import si.pecan.upsert.dialect.ColumnInfo
 import si.pecan.upsert.dialect.UpsertDialect
+import javax.persistence.Column
 import javax.persistence.EmbeddedId
 import javax.persistence.Id
 
@@ -17,20 +19,7 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
      * @return The generated SQL query
      */
     fun processUpsertEntity(entityClass: Class<*>, tableName: String): String {
-        // Get the key and value columns from the entity class
-        val keyColumns = getKeyColumns(entityClass)
-        val valueColumns = getValueColumns(entityClass)
-
-        // Check if we have at least one key column and one value column
-        if (keyColumns.isEmpty()) {
-            throw IllegalArgumentException("No key fields found in ${entityClass.name}. Use @UpsertKey, @Id, or @EmbeddedId annotations to mark key fields.")
-        }
-        if (valueColumns.isEmpty()) {
-            throw IllegalArgumentException("No value fields found in ${entityClass.name}. Either use @UpsertValue annotations or ensure there are non-key fields in the entity.")
-        }
-
-        // Generate the SQL using the dialect
-        return dialect.generateUpsertSql(tableName, keyColumns, valueColumns)
+        return processBatchUpsertEntity(entityClass, tableName, 1)
     }
 
     /**
@@ -54,14 +43,8 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
             throw IllegalArgumentException("No value fields found in ${entityClass.name}. Either use @UpsertValue annotations or ensure there are non-key fields in the entity.")
         }
 
-        // Check if the dialect supports optimized batch operations
-        return if (dialect.supportsOptimizedBatch()) {
-            // Generate the SQL using the optimized batch method
-            dialect.generateOptimizedBatchUpsertSql(tableName, keyColumns, valueColumns, batchSize)
-        } else {
-            // Generate the SQL using the regular batch method
-            dialect.generateBatchUpsertSql(tableName, keyColumns, valueColumns, batchSize)
-        }
+        // Generate the SQL using the regular batch method
+        return dialect.generateBatchUpsertSql(tableName, keyColumns, valueColumns, batchSize)
     }
 
     /**
@@ -79,13 +62,24 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
      * @param entityClass The entity class
      * @return The list of column names
      */
-    private fun getKeyColumns(entityClass: Class<*>): List<String> {
+    private fun getKeyColumns(entityClass: Class<*>): List<ColumnInfo> {
         return entityClass.declaredFields
             .filter {
                 it.isAnnotationPresent(Id::class.java) ||
-                it.isAnnotationPresent(EmbeddedId::class.java)
+                        it.isAnnotationPresent(EmbeddedId::class.java)
             }
-            .map { it.name }
+            .map { field ->
+                // Check if the field has a @Column annotation
+                val columnAnnotation = field.getAnnotation(Column::class.java)
+                val name = if (columnAnnotation != null && columnAnnotation.name.isNotBlank()) {
+                    // Use the column name from the annotation
+                    columnAnnotation.name
+                } else {
+                    // Use the field name as the column name
+                    field.name
+                }
+                ColumnInfo(name, field.name)
+            }
     }
 
     /**
@@ -95,11 +89,28 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
      * @param entityClass The entity class
      * @return The list of column names
      */
-    private fun getValueColumns(entityClass: Class<*>): List<String> {
-        // Otherwise, use all non-key fields
-        val keyColumns = getKeyColumns(entityClass)
+    private fun getValueColumns(entityClass: Class<*>): List<ColumnInfo> {
+        // Get the key fields
+        val keyFields = entityClass.declaredFields
+            .filter {
+                it.isAnnotationPresent(Id::class.java) ||
+                        it.isAnnotationPresent(EmbeddedId::class.java)
+            }
+
+        // Get all non-key fields
         return entityClass.declaredFields
-            .filter { !keyColumns.contains(it.name) }
-            .map { it.name }
+            .filter { field -> !keyFields.contains(field) }
+            .map { field ->
+                // Check if the field has a @Column annotation
+                val columnAnnotation = field.getAnnotation(Column::class.java)
+                val name = if (columnAnnotation != null && columnAnnotation.name.isNotBlank()) {
+                    // Use the column name from the annotation
+                    columnAnnotation.name
+                } else {
+                    // Use the field name as the column name
+                    field.name
+                }
+                ColumnInfo(name, field.name)
+            }
     }
 }
