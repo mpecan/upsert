@@ -53,7 +53,6 @@ class UpsertRepositoryQuery(
                     upsertInfo.ignoredFields,
                     upsertInfo.ignoreAllFields
                 )
-                return 1
             }
         } catch (e: Exception) {
             // Check if the exception is related to using fields without uniqueness or exclusion constraints

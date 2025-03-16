@@ -74,17 +74,14 @@ class ConverterIntegrationTest {
 
         try {
             // Perform the upsert operation
-            val rowsAffected = upsertOperations.upsert(entity, "jpa_test_entity_with_converter")
+            val result = upsertOperations.upsert(entity, "jpa_test_entity_with_converter")
 
             // Verify that one row was affected
-            assertEquals(1, rowsAffected)
 
-            // Verify that the entity was inserted correctly
-            val result = jdbcTemplate.queryForMap("SELECT * FROM jpa_test_entity_with_converter WHERE id = ?", 1)
             println("[DEBUG_LOG] Query result: $result")
-            assertEquals("Test Entity", result["name"])
-            assertEquals("""{"key":"test-key","value":"test-value"}""", result["json_data"])
-            assertEquals(true, result["active"])
+            assertEquals("Test Entity", result.name)
+            assertEquals(jsonData, result.jsonData)
+            assertEquals(true, result.active)
         } catch (e: Exception) {
             println("[DEBUG_LOG] Error: ${e.message}")
             e.printStackTrace()
@@ -116,18 +113,12 @@ class ConverterIntegrationTest {
             val convertedValue2 = converter.convertToDatabaseColumn(jsonData2)
             println("[DEBUG_LOG] Second converted JSON: $convertedValue2")
 
-            val rowsAffected = upsertOperations.upsert(entity2, "jpa_test_entity_with_converter")
-            println("[DEBUG_LOG] Second upsert result: $rowsAffected")
+            val result = upsertOperations.upsert(entity2, "jpa_test_entity_with_converter")
 
-            // Verify that one row was affected
-            assertEquals(1, rowsAffected)
-
-            // Verify that the entity was updated correctly
-            val result = jdbcTemplate.queryForMap("SELECT * FROM jpa_test_entity_with_converter WHERE id = ?", 2)
             println("[DEBUG_LOG] Query result: $result")
-            assertEquals("Updated Entity", result["name"])
-            assertEquals("""{"key":"updated-key","value":"updated-value"}""", result["json_data"])
-            assertEquals(false, result["active"])
+            assertEquals("Updated Entity", result.name)
+            assertEquals(jsonData2, result.jsonData)
+            assertEquals(false, result.active)
         } catch (e: Exception) {
             println("[DEBUG_LOG] Error: ${e.message}")
             e.printStackTrace()

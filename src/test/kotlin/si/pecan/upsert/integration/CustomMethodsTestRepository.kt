@@ -12,41 +12,41 @@ interface CustomMethodsTestRepository : JpaTestEntityRepository {
     /**
      * Upsert a single entity using 'name' as the ON clause.
      */
-    fun upsertOnId(entity: JpaTestEntity): Int
+    fun upsertOnId(entity: JpaTestEntity): JpaTestEntity
 
     /**
      * Upsert a single entity using 'name' as the ON clause.
      */
-    fun upsertIgnoringName(entity: JpaTestEntity): Int
+    fun upsertIgnoringName(entity: JpaTestEntity): JpaTestEntity
 
     /**
      * Upsert a single entity using 'name' as the ON clause.
      */
-    fun upsertOnName(entity: JpaTestEntity): Int
-    
+    fun upsertOnName(entity: JpaTestEntity): JpaTestEntity
+
     /**
      * Upsert a single entity using 'name' as the ON clause and ignoring 'active' field.
      */
-    fun upsertOnNameIgnoringActive(entity: JpaTestEntity): Int
-    
+    fun upsertOnNameIgnoringActive(entity: JpaTestEntity): JpaTestEntity
+
     /**
      * Upsert a single entity using 'name' and 'description' as the ON clause.
      */
-    fun upsertOnNameAndDescription(entity: JpaTestEntity): Int
-    
+    fun upsertOnNameAndDescription(entity: JpaTestEntity): JpaTestEntity
+
     /**
      * Upsert a single entity using 'name' as the ON clause and ignoring all fields.
      * This will only insert new rows and not update existing ones.
      */
-    fun upsertOnNameIgnoringAllFields(entity: JpaTestEntity): Int
-    
+    fun upsertOnNameIgnoringAllFields(entity: JpaTestEntity): JpaTestEntity
+
     /**
      * Upsert multiple entities using 'name' as the ON clause.
      */
-    fun upsertAllOnName(entities: List<JpaTestEntity>): Int
-    
+    fun upsertAllOnName(entities: List<JpaTestEntity>): List<JpaTestEntity>
+
     /**
      * Upsert multiple entities using 'name' as the ON clause and ignoring 'active' field.
      */
-    fun upsertAllOnNameIgnoringActive(entities: List<JpaTestEntity>): Int
+    fun upsertAllOnNameIgnoringActive(entities: List<JpaTestEntity>): List<JpaTestEntity>
 }

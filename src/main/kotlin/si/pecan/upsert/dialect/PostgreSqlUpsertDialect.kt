@@ -8,6 +8,7 @@ class PostgreSqlUpsertDialect : UpsertDialect {
     /**
      * Generate a batch upsert SQL statement for PostgreSQL.
      * Uses the "INSERT ... VALUES (...) ON CONFLICT ... DO UPDATE" syntax.
+     * Does not include a RETURNING clause, as generated keys will be handled by GeneratedKeyHolder.
      *
      * @param tableName The name of the table
      * @param keyColumns The columns to use as keys for the upsert operation

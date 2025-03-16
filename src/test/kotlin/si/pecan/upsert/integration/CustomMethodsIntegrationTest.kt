@@ -81,7 +81,9 @@ class CustomMethodsIntegrationTest {
         val result = customMethodsTestRepository.upsertOnId(entity2)
 
         // Then
-        assertEquals(1, result)
+        assertEquals(entity1.name, result.name)
+        assertEquals(entity2.description, result.description)
+        assertEquals(entity2.active, result.active)
     }
 
     @Test
@@ -97,7 +99,9 @@ class CustomMethodsIntegrationTest {
         val result = customMethodsTestRepository.upsertIgnoringName(entity2)
 
         // Then
-        assertEquals(1, result)
+        assertEquals(entity2.name, result.name)
+        assertEquals(entity2.description, result.description)
+        assertEquals(entity2.active, result.active)
     }
 
     @Test

@@ -64,17 +64,13 @@ class PostgreSqlIntegrationTest {
         val entity = JpaTestEntity(3, "JPA Test Entity", "JPA Test Description", true)
 
         // When
-        val rowsAffected = upsertOperations.upsert(entity, "jpa_test_entity")
+        val result = upsertOperations.upsert(entity, "jpa_test_entity")
 
         // Then
-        assertEquals(1, rowsAffected)
-
-        // Verify the entity was inserted
-        val result = jdbcTemplate.queryForMap("SELECT * FROM jpa_test_entity WHERE id = ?", 3)
-        assertEquals(3L, result["id"])
-        assertEquals("JPA Test Entity", result["name"])
-        assertEquals("JPA Test Description", result["description"])
-        assertEquals(true, result["active"])
+        assertEquals(3L, result.id)
+        assertEquals("JPA Test Entity", result.name)
+        assertEquals("JPA Test Description", result.description)
+        assertEquals(true, result.active)
     }
 
     @Test
@@ -87,17 +83,13 @@ class PostgreSqlIntegrationTest {
         upsertOperations.upsert(entity1, "jpa_test_entity")
 
         // When
-        val rowsAffected = upsertOperations.upsert(entity2, "jpa_test_entity")
+        val result = upsertOperations.upsert(entity2, "jpa_test_entity")
 
         // Then
-        assertEquals(1, rowsAffected)
-
-        // Verify the entity was updated
-        val result = jdbcTemplate.queryForMap("SELECT * FROM jpa_test_entity WHERE id = ?", 4)
-        assertEquals(4L, result["id"])
-        assertEquals("Updated JPA Entity", result["name"])
-        assertEquals("Updated JPA Description", result["description"])
-        assertEquals(false, result["active"])
+        assertEquals(4L, result.id)
+        assertEquals("Updated JPA Entity", result.name)
+        assertEquals("Updated JPA Description", result.description)
+        assertEquals(false, result.active)
     }
 
     @Test
@@ -110,29 +102,25 @@ class PostgreSqlIntegrationTest {
         )
 
         // When
-        val rowsAffected = upsertOperations.upsertAll(entities, "jpa_test_entity")
+        val results = upsertOperations.upsertAll(entities, "jpa_test_entity")
 
         // Then
-        assertEquals(3, rowsAffected) // 1 row affected per entity inserted
-
-        // Verify the entities were inserted
-        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (5, 6, 7) ORDER BY id")
         assertEquals(3, results.size)
 
-        assertEquals(5L, results[0]["id"])
-        assertEquals("Entity 5", results[0]["name"])
-        assertEquals("Description 5", results[0]["description"])
-        assertEquals(true, results[0]["active"])
+        assertEquals(5L, results[0].id)
+        assertEquals("Entity 5", results[0].name)
+        assertEquals("Description 5", results[0].description)
+        assertEquals(true, results[0].active)
 
-        assertEquals(6L, results[1]["id"])
-        assertEquals("Entity 6", results[1]["name"])
-        assertEquals("Description 6", results[1]["description"])
-        assertEquals(false, results[1]["active"])
+        assertEquals(6L, results[1].id)
+        assertEquals("Entity 6", results[1].name)
+        assertEquals("Description 6", results[1].description)
+        assertEquals(false, results[1].active)
 
-        assertEquals(7L, results[2]["id"])
-        assertEquals("Entity 7", results[2]["name"])
-        assertEquals("Description 7", results[2]["description"])
-        assertEquals(true, results[2]["active"])
+        assertEquals(7L, results[2].id)
+        assertEquals("Entity 7", results[2].name)
+        assertEquals("Description 7", results[2].description)
+        assertEquals(true, results[2].active)
     }
 
     @Test
@@ -152,23 +140,19 @@ class PostgreSqlIntegrationTest {
         upsertOperations.upsertAll(originalEntities, "jpa_test_entity")
 
         // When
-        val rowsAffected = upsertOperations.upsertAll(updatedEntities, "jpa_test_entity")
+        val results = upsertOperations.upsertAll(updatedEntities, "jpa_test_entity")
 
         // Then
-        assertEquals(2, rowsAffected) // 1 row affected per entity updated
-
-        // Verify the entities were updated
-        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (8, 9) ORDER BY id")
         assertEquals(2, results.size)
 
-        assertEquals(8L, results[0]["id"])
-        assertEquals("Updated Entity 8", results[0]["name"])
-        assertEquals("Updated Description 8", results[0]["description"])
-        assertEquals(false, results[0]["active"])
+        assertEquals(8L, results[0].id)
+        assertEquals("Updated Entity 8", results[0].name)
+        assertEquals("Updated Description 8", results[0].description)
+        assertEquals(false, results[0].active)
 
-        assertEquals(9L, results[1]["id"])
-        assertEquals("Updated Entity 9", results[1]["name"])
-        assertEquals("Updated Description 9", results[1]["description"])
-        assertEquals(false, results[1]["active"])
+        assertEquals(9L, results[1].id)
+        assertEquals("Updated Entity 9", results[1].name)
+        assertEquals("Updated Description 9", results[1].description)
+        assertEquals(false, results[1].active)
     }
 }

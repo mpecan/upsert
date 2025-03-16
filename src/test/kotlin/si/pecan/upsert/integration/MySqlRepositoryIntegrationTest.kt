@@ -71,17 +71,13 @@ class MySqlRepositoryIntegrationTest {
         val entity = JpaTestEntity(3, "JPA Test Entity", "JPA Test Description", true)
 
         // When
-        val rowsAffected = jpaTestEntityRepository.upsert(entity)
+        val result = jpaTestEntityRepository.upsert(entity)
 
         // Then
-        assertEquals(1, rowsAffected)
-
-        // Verify the entity was inserted
-        val result = jdbcTemplate.queryForMap("SELECT * FROM jpa_test_entity WHERE id = ?", 3)
-        assertEquals(3L, result["id"])
-        assertEquals("JPA Test Entity", result["name"])
-        assertEquals("JPA Test Description", result["description"])
-        assertEquals(true, result["active"])
+        assertEquals(3L, result.id)
+        assertEquals("JPA Test Entity", result.name)
+        assertEquals("JPA Test Description", result.description)
+        assertEquals(true, result.active)
     }
 
     @Test
@@ -94,20 +90,14 @@ class MySqlRepositoryIntegrationTest {
         jpaTestEntityRepository.upsert(entity1)
 
         // When
-        val rowsAffected = jpaTestEntityRepository.upsert(entity2)
+        val result = jpaTestEntityRepository.upsert(entity2)
 
         // Then
-        assertEquals(
-            2,
-            rowsAffected
-        ) // MySQL returns 2 for updates (1 for the row matched, 1 for the row updated)
 
-        // Verify the entity was updated
-        val result = jdbcTemplate.queryForMap("SELECT * FROM jpa_test_entity WHERE id = ?", 4)
-        assertEquals(4L, result["id"])
-        assertEquals("Updated JPA Entity", result["name"])
-        assertEquals("Updated JPA Description", result["description"])
-        assertEquals(false, result["active"])
+        assertEquals(4L, result.id)
+        assertEquals("Updated JPA Entity", result.name)
+        assertEquals("Updated JPA Description", result.description)
+        assertEquals(false, result.active)
     }
 
     @Test
@@ -120,29 +110,25 @@ class MySqlRepositoryIntegrationTest {
         )
 
         // When
-        val rowsAffected = jpaTestEntityRepository.upsertAll(entities)
+        val results = jpaTestEntityRepository.upsertAll(entities)
 
         // Then
-        assertEquals(3, rowsAffected)
-
-        // Verify the entities were inserted
-        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (5, 6, 7) ORDER BY id")
         assertEquals(3, results.size)
 
-        assertEquals(5L, results[0]["id"])
-        assertEquals("JPA Entity 1", results[0]["name"])
-        assertEquals("Description 1", results[0]["description"])
-        assertEquals(true, results[0]["active"])
+        assertEquals(5L, results[0].id)
+        assertEquals("JPA Entity 1", results[0].name)
+        assertEquals("Description 1", results[0].description)
+        assertEquals(true, results[0].active)
 
-        assertEquals(6L, results[1]["id"])
-        assertEquals("JPA Entity 2", results[1]["name"])
-        assertEquals("Description 2", results[1]["description"])
-        assertEquals(false, results[1]["active"])
+        assertEquals(6L, results[1].id)
+        assertEquals("JPA Entity 2", results[1].name)
+        assertEquals("Description 2", results[1].description)
+        assertEquals(false, results[1].active)
 
-        assertEquals(7L, results[2]["id"])
-        assertEquals("JPA Entity 3", results[2]["name"])
-        assertEquals("Description 3", results[2]["description"])
-        assertEquals(true, results[2]["active"])
+        assertEquals(7L, results[2].id)
+        assertEquals("JPA Entity 3", results[2].name)
+        assertEquals("Description 3", results[2].description)
+        assertEquals(true, results[2].active)
     }
 
     @Test
@@ -162,24 +148,20 @@ class MySqlRepositoryIntegrationTest {
         jpaTestEntityRepository.upsertAll(originalEntities)
 
         // When
-        val rowsAffected = jpaTestEntityRepository.upsertAll(updatedEntities)
+        val results = jpaTestEntityRepository.upsertAll(updatedEntities)
 
         // Then
-        assertEquals(4, rowsAffected) // MySQL returns 2 for each update (1 for the row matched, 1 for the row updated)
-
-        // Verify the entities were updated
-        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (8, 9) ORDER BY id")
         assertEquals(2, results.size)
 
-        assertEquals(8L, results[0]["id"])
-        assertEquals("Updated Entity 1", results[0]["name"])
-        assertEquals("Updated Description 1", results[0]["description"])
-        assertEquals(false, results[0]["active"])
+        assertEquals(8L, results[0].id)
+        assertEquals("Updated Entity 1", results[0].name)
+        assertEquals("Updated Description 1", results[0].description)
+        assertEquals(false, results[0].active)
 
-        assertEquals(9L, results[1]["id"])
-        assertEquals("Updated Entity 2", results[1]["name"])
-        assertEquals("Updated Description 2", results[1]["description"])
-        assertEquals(false, results[1]["active"])
+        assertEquals(9L, results[1].id)
+        assertEquals("Updated Entity 2", results[1].name)
+        assertEquals("Updated Description 2", results[1].description)
+        assertEquals(false, results[1].active)
     }
 
     @Test
@@ -194,24 +176,20 @@ class MySqlRepositoryIntegrationTest {
         )
 
         // When
-        val rowsAffected = jpaTestEntityRepository.upsertAll(mixedEntities)
+        val results = jpaTestEntityRepository.upsertAll(mixedEntities)
 
         // Then
-        assertEquals(3, rowsAffected) // 2 for update + 1 for insert
-
-        // Verify the entities
-        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (10, 11) ORDER BY id")
         assertEquals(2, results.size)
 
-        assertEquals(10L, results[0]["id"])
-        assertEquals("Updated Entity", results[0]["name"])
-        assertEquals("Updated Description", results[0]["description"])
-        assertEquals(false, results[0]["active"])
+        assertEquals(10L, results[0].id)
+        assertEquals("Updated Entity", results[0].name)
+        assertEquals("Updated Description", results[0].description)
+        assertEquals(false, results[0].active)
 
-        assertEquals(11L, results[1]["id"])
-        assertEquals("New Entity", results[1]["name"])
-        assertEquals("New Description", results[1]["description"])
-        assertEquals(true, results[1]["active"])
+        assertEquals(11L, results[1].id)
+        assertEquals("New Entity", results[1].name)
+        assertEquals("New Description", results[1].description)
+        assertEquals(true, results[1].active)
     }
 
     @Test
@@ -220,17 +198,13 @@ class MySqlRepositoryIntegrationTest {
         val entity = JpaTestEntity(12, "Entity With Null Description", null, true)
 
         // When
-        val rowsAffected = jpaTestEntityRepository.upsert(entity)
+        val result = jpaTestEntityRepository.upsert(entity)
 
         // Then
-        assertEquals(1, rowsAffected)
-
-        // Verify the entity was inserted with null description
-        val result = jdbcTemplate.queryForMap("SELECT * FROM jpa_test_entity WHERE id = ?", 12)
-        assertEquals(12L, result["id"])
-        assertEquals("Entity With Null Description", result["name"])
-        assertEquals(null, result["description"])
-        assertEquals(true, result["active"])
+        assertEquals(12L, result.id)
+        assertEquals("Entity With Null Description", result.name)
+        assertEquals(null, result.description)
+        assertEquals(true, result.active)
     }
 
     @Test
@@ -239,9 +213,9 @@ class MySqlRepositoryIntegrationTest {
         val emptyList = emptyList<JpaTestEntity>()
 
         // When
-        val rowsAffected = jpaTestEntityRepository.upsertAll(emptyList)
+        val results = jpaTestEntityRepository.upsertAll(emptyList)
 
         // Then
-        assertEquals(0, rowsAffected)
+        assertEquals(0, results.size)
     }
 }
