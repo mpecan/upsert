@@ -112,15 +112,6 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
     }
 
     /**
-     * Check if the dialect supports optimized batch operations.
-     *
-     * @return True if the dialect supports optimized batch operations, false otherwise
-     */
-    fun supportsOptimizedBatch(): Boolean {
-        return dialect.supportsOptimizedBatch()
-    }
-
-    /**
      * Get the column names for fields annotated with @Id or @EmbeddedId.
      * Uses a cache to avoid repeated reflection.
      *
@@ -243,7 +234,7 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
         ignoredFields: List<String>
     ): List<ColumnInfo> {
         // Convert ignored field names to lowercase for case-insensitive comparison
-        val lowerIgnoredFields = ignoredFields.map { it.toLowerCase() }
+        val lowerIgnoredFields = ignoredFields.map { it.lowercase() }
 
         // Get all fields from the entity class
         return entityClass.declaredFields
@@ -251,7 +242,7 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
                 // Exclude key fields
                 !keyPropertyNames.contains(field.name) &&
                 // Exclude ignored fields
-                !lowerIgnoredFields.contains(getColumnName(field).toLowerCase())
+                !lowerIgnoredFields.contains(getColumnName(field).lowercase())
             }
             .map { field ->
                 // Create a ColumnInfo for the field

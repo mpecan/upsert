@@ -1,7 +1,6 @@
 package si.pecan.upsert.integration
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
@@ -10,6 +9,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.dao.InvalidDataAccessApiUsageException
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -18,7 +18,6 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import si.pecan.upsert.entity.JpaTestEntity
-import si.pecan.upsert.repository.UpsertRepository
 import si.pecan.upsert.repository.UpsertRepositoryFactoryBean
 
 /**
@@ -333,57 +332,51 @@ class PostgreSqlRepositoryIntegrationTest {
         assertEquals(false, info5.ignoreAllFields)
     }
 
-    // TODO: Change these two tests to assert that we will have an exception when trying to use ON clause with fields that do not have an associated unique constraint
-//    @Test
-//    fun `should handle custom upsert operations using reflection`() {
-//        // Given
-//        val entity1 = JpaTestEntity(1, "Test Entity", "Original Description", true)
-//        val entity2 = JpaTestEntity(2, "Test Entity", "Updated Description", false)
-//
-//        // Insert the first entity
-//        jpaTestEntityRepository.upsert(entity1)
-//
-//
-//        // When - upsert with the same name but different ID
-//        val rowsAffected = customMethodsTestRepository.upsertOnName(entity2)
-//
-//        // Then
-//        assertEquals(1, rowsAffected)
-//
-//        // Verify that the entity was updated based on name, not ID
-//        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity ORDER BY id")
-//        assertEquals(1, results.size)
-//
-//        // The ID should still be 1 (from the first entity), but other fields should be updated
-//        assertEquals(1L, results[0]["id"])
-//        assertEquals("Test Entity", results[0]["name"])
-//        assertEquals("Updated Description", results[0]["description"])
-//        assertEquals(false, results[0]["active"])
-//    }
 
-//    @Test
-//    fun `should handle custom upsert operations with ignored fields`() {
-//        // Given
-//        val entity1 = JpaTestEntity(1, "Test Entity", "Original Description", true)
-//        val entity2 = JpaTestEntity(2, "Test Entity", "Updated Description", false)
-//
-//        // Insert the first entity
-//        jpaTestEntityRepository.upsert(entity1)
-//
-//
-//        val rowsAffected = customMethodsTestRepository.upsertOnNameIgnoringActive(entity2)
-//
-//        // Then
-//        assertEquals(1, rowsAffected)
-//
-//        // Verify that the entity was updated based on name, but active field was not updated
-//        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity ORDER BY id")
-//        assertEquals(1, results.size)
-//
-//        // The ID should still be 1, description should be updated, but active should remain true
-//        assertEquals(1L, results[0]["id"])
-//        assertEquals("Test Entity", results[0]["name"])
-//        assertEquals("Updated Description", results[0]["description"])
-//        assertEquals(true, results[0]["active"]) // Active field should not be updated
-//    }
+    @Test
+    fun `sgould handle custom upsert operations using reflection`() {
+        // Given
+        val entity1 = JpaTestEntity(1, "Test Entity", "Original Description", true)
+        val entity2 = JpaTestEntity(1, "Test Entity", "Updated Description", false)
+
+        // Insert the first entity
+        jpaTestEntityRepository.upsert(entity1)
+
+        // When - upsert with the same name but different ID
+        val result = customMethodsTestRepository.upsertOnId(entity2)
+
+        // Then
+        assertEquals(1, result)
+
+        // Verify the entity was updated
+        val queryResult = jdbcTemplate.queryForMap("SELECT * FROM jpa_test_entity WHERE id = ?", 1)
+        assertEquals(1L, queryResult["id"])
+        assertEquals("Test Entity", queryResult["name"])
+        assertEquals("Updated Description", queryResult["description"])
+        assertEquals(false, queryResult["active"])
+
+    }
+
+    @Test
+    fun `should throw exception if custom operations do not include columns with a uniqueness constraint`() {
+        // Given
+        val entity1 = JpaTestEntity(1, "Test Entity", "Original Description", true)
+        val entity2 = JpaTestEntity(2, "Test Entity", "Updated Description", false)
+
+        // Insert the first entity
+        jpaTestEntityRepository.upsert(entity1)
+
+
+        // When - upsert with the same name but different ID
+        val exception = assertThrows(InvalidDataAccessApiUsageException::class.java) {
+            customMethodsTestRepository.upsertOnName(entity2)
+        }
+
+        // Then
+
+        // Verify the exception message
+        assert(exception.message?.contains("do not have a uniqueness or exclusion constraint") == true)
+    }
+
+
 }

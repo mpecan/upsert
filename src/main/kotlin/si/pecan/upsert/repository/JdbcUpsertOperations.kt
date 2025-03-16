@@ -11,8 +11,8 @@ import si.pecan.upsert.dialect.UpsertDialect
  * for engine-specific optimizations.
  */
 class JdbcUpsertOperations(
-    private val jdbcTemplate: JdbcTemplate,
-    private val dialect: UpsertDialect
+    jdbcTemplate: JdbcTemplate,
+    dialect: UpsertDialect
 ) : UpsertOperations {
 
     // Delegate to the appropriate implementation based on the dialect

@@ -29,7 +29,7 @@ class UpsertQueryLookupStrategy(
     ): RepositoryQuery {
         // If the method name starts with "upsert", handle it with custom logic
         if (method.name.startsWith("upsert") && methodNameParser.parse(method.name) != null) {
-            return UpsertRepositoryQuery(method, metadata, em, repository, factory)
+            return UpsertRepositoryQuery(method, metadata, repository, factory)
         }
 
         // Otherwise delegate to the standard strategy

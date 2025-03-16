@@ -108,12 +108,12 @@ abstract class AbstractJdbcUpsertOperations(
      */
     protected fun getKeyFieldsByName(entityClass: Class<*>, fieldNames: List<String>): List<Field> {
         // Convert field names to column names
-        val columnNames = fieldNames.map { it.toLowerCase() }
+        val columnNames = fieldNames.map { it.lowercase() }
 
         // Get all fields from the entity class
         return entityClass.declaredFields.filter { field ->
             // Get the column name for the field
-            val columnName = getColumnName(field).toLowerCase()
+            val columnName = getColumnName(field).lowercase()
             // Check if the column name is in the list of column names
             columnNames.contains(columnName)
         }
@@ -132,38 +132,6 @@ abstract class AbstractJdbcUpsertOperations(
             // Use all non-key fields
             val keyFieldNames = getKeyFields(entityClass).map { it.name }
             entityClass.declaredFields.filter { !keyFieldNames.contains(it.name) }
-        }
-    }
-
-    /**
-     * Get the value fields from the entity class, excluding specified fields.
-     *
-     * @param entityClass The entity class
-     * @param keyFields The key fields to exclude
-     * @param ignoredFields The field names to ignore
-     * @param ignoreAllFields Whether to ignore all fields
-     * @return The list of value fields
-     */
-    protected fun getValueFieldsExcluding(
-        entityClass: Class<*>,
-        keyFields: List<Field>,
-        ignoredFields: List<String>,
-        ignoreAllFields: Boolean
-    ): List<Field> {
-        // If ignoreAllFields is true, return an empty list
-        if (ignoreAllFields) {
-            return emptyList()
-        }
-
-        // Convert ignored field names to column names
-        val ignoredColumnNames = ignoredFields.map { it.toLowerCase() }
-
-        // Get all fields from the entity class
-        return entityClass.declaredFields.filter { field ->
-            // Exclude key fields
-            !keyFields.contains(field) &&
-            // Exclude ignored fields
-            !ignoredColumnNames.contains(getColumnName(field).toLowerCase())
         }
     }
 
@@ -200,29 +168,6 @@ abstract class AbstractJdbcUpsertOperations(
         // Get value fields (all non-key fields)
         val valueFields = getValueFields(entityClass)
 
-        // Combine key and value fields
-        val allFields = keyFields + valueFields
-
-        // Extract values from fields
-        return allFields.map { field ->
-            field.isAccessible = true
-            field.get(entity)
-        }
-    }
-
-    /**
-     * Extract parameter values from the entity using custom key and value fields.
-     *
-     * @param entity The entity
-     * @param keyFields The key fields
-     * @param valueFields The value fields
-     * @return The list of parameter values
-     */
-    protected fun <T : Any> extractParameterValues(
-        entity: T,
-        keyFields: List<Field>,
-        valueFields: List<Field>
-    ): List<Any?> {
         // Combine key and value fields
         val allFields = keyFields + valueFields
 

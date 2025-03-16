@@ -5,7 +5,6 @@ import org.springframework.data.repository.core.RepositoryMetadata
 import org.springframework.data.repository.query.RepositoryQuery
 import org.springframework.data.repository.query.QueryMethod
 import java.lang.reflect.Method
-import javax.persistence.EntityManager
 
 /**
  * Custom repository query to implement the upsert* methods.
@@ -14,7 +13,6 @@ import javax.persistence.EntityManager
 class UpsertRepositoryQuery(
     private val method: Method,
     private val metadata: RepositoryMetadata,
-    private val em: EntityManager,
     private val repository: UpsertRepository<Any, Any>,
     private val factory: ProjectionFactory
 ) : RepositoryQuery {
@@ -23,7 +21,7 @@ class UpsertRepositoryQuery(
     private val upsertInfo = methodNameParser.parse(method.name)
         ?: throw IllegalArgumentException("Method ${method.name} is not a valid upsert method")
 
-    override fun execute(parameters: Array<out Any>): Any? {
+    override fun execute(parameters: Array<out Any>): Any {
         // Check for collection parameter (should be first parameter for upsertAll)
         if (parameters.isEmpty()) {
             throw IllegalArgumentException("upsert* methods must have at least one parameter")

@@ -13,7 +13,7 @@ import javax.persistence.Table
  * @param ID The type of the entity's ID
  */
 class BaseUpsertRepositoryImpl<T : Any, ID : Any>(
-    private val entityInformation: EntityInformation<T, ID>,
+    entityInformation: EntityInformation<T, ID>,
     private val entityManager: EntityManager
 ) : SimpleJpaRepository<T, ID>(entityInformation.javaType, entityManager), BaseUpsertRepository<T, ID> {
 
@@ -21,23 +21,6 @@ class BaseUpsertRepositoryImpl<T : Any, ID : Any>(
 
     // Cache for table names by entity class
     private val tableNameCache = mutableMapOf<Class<*>, String>()
-
-    /**
-     * Set the UpsertOperations instance.
-     * This method is called by the UpsertRepositoryFactoryBean.
-     *
-     * @param upsertOperations The UpsertOperations instance
-     */
-    fun setUpsertOperations(upsertOperations: UpsertOperations) {
-        this.upsertOperations = upsertOperations
-        
-        // Initialize the upsert operations with entity class and ID class
-        val entityClass = entityInformation.javaType
-        val idClass = entityInformation.idType
-        val tableName = getTableName(entityClass)
-        
-        upsertOperations.initialize(entityClass, idClass, tableName)
-    }
 
     /**
      * Perform an upsert operation for the given entity.

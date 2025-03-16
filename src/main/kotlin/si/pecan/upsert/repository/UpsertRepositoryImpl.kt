@@ -64,7 +64,6 @@ class UpsertRepositoryImpl<T : Any, ID>(
      * Perform an upsert operation for the given entity with custom ON clause and ignored fields.
      *
      * @param entity The entity to upsert
-     * @param tableName The table name
      * @param onFields The fields to use for the ON clause
      * @param ignoredFields The fields to ignore during updates
      * @param ignoreAllFields Whether to ignore all fields during updates
@@ -104,7 +103,6 @@ class UpsertRepositoryImpl<T : Any, ID>(
      * Perform an upsert operation for the given list of entities with custom ON clause and ignored fields.
      *
      * @param entities The list of entities to upsert
-     * @param tableName The table name
      * @param onFields The fields to use for the ON clause
      * @param ignoredFields The fields to ignore during updates
      * @param ignoreAllFields Whether to ignore all fields during updates

@@ -1,5 +1,7 @@
 package si.pecan.upsert.repository
 
+import java.util.*
+
 /**
  * Parser for upsert method names.
  * This class is responsible for parsing method names like "upsertAllOnAgendaIdAndTypeIgnoringUpdatedAt"
@@ -65,7 +67,7 @@ class UpsertMethodNameParser {
         // Convert each part to snake_case
         return parts.map { part ->
             // Insert underscore before each uppercase letter and convert to lowercase
-            part.replace(CAMEL_CASE_PATTERN, "_$1").toLowerCase()
+            part.replace(CAMEL_CASE_PATTERN, "_$1").lowercase()
                 // Remove leading underscore if present
                 .removePrefix("_")
         }
