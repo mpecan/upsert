@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.QueryLookupStrategy
 import org.springframework.data.repository.query.RepositoryQuery
 import java.lang.reflect.Method
 import java.util.Optional
-import javax.persistence.EntityManager
 
 /**
  * Custom query lookup strategy to handle upsert* methods.
@@ -15,7 +14,6 @@ import javax.persistence.EntityManager
  */
 class UpsertQueryLookupStrategy(
     private val delegateStrategy: Optional<QueryLookupStrategy>,
-    private val em: EntityManager,
     private val repository: UpsertRepository<Any, Any>
 ) : QueryLookupStrategy {
 

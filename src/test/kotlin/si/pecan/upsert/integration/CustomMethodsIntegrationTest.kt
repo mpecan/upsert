@@ -50,9 +50,6 @@ class CustomMethodsIntegrationTest {
     }
 
     @Autowired
-    private lateinit var jpaTestEntityRepository: JpaTestEntityRepository
-
-    @Autowired
     private lateinit var customMethodsTestRepository: CustomMethodsTestRepository
 
     @Autowired

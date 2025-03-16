@@ -70,7 +70,7 @@ class UpsertRepositoryFactoryBean<T : Repository<S, ID>, S : Any, ID : Serializa
             val delegateStrategy = super.getQueryLookupStrategy(key, evaluationContextProvider)
 
             // Wrap it with our custom strategy
-            return Optional.of(UpsertQueryLookupStrategy(delegateStrategy, em, repository))
+            return Optional.of(UpsertQueryLookupStrategy(delegateStrategy, repository))
         }
     }
 }
