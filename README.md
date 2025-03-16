@@ -1,202 +1,95 @@
-# Spring Data Upsert Extension
+# Upsert Repository
 
-A Spring Data extension that allows the use of upsert operations in both PostgreSQL and MySQL databases.
-
-## Overview
-
-This library provides a way to perform upsert operations (insert or update) in Spring Data repositories. It supports both PostgreSQL and MySQL databases, and automatically selects the appropriate SQL syntax based on the database being used.
+A Spring Data JPA extension that provides upsert capabilities for repositories.
 
 ## Features
 
-- Support for both PostgreSQL and MySQL databases
-- Automatic detection of the database type
-- Custom annotations for marking key and value fields
-- Support for JPA annotations (@Id, @EmbeddedId) for key fields
-- Automatic detection of value fields when using JPA entities
-- Batch upsert operations with `upsertAll` method
-- Spring Boot auto-configuration for easy setup
-- Repository extension for direct integration with Spring Data repositories
+- Upsert a single entity or a list of entities
+- Support for custom ON clauses and ignored fields
+- Compatible with Spring Data JPA repositories
 
 ## Usage
 
-### 1. Add the dependency to your project
+### Basic Usage
+
+To use the upsert capabilities, your repository interface should extend `UpsertRepository`:
 
 ```kotlin
-dependencies {
-    implementation("si.pecan:upsert:0.0.1-SNAPSHOT")
+interface UserRepository : UpsertRepository<User, Long> {
+    // Standard Spring Data JPA methods
+    fun findByUsername(username: String): User?
 }
 ```
 
-### 2. Configure your entity
-
-You can use either custom annotations or JPA annotations to configure your entity for upsert operations.
-
-#### Using JPA annotations
+Then you can use the `upsert` and `upsertAll` methods:
 
 ```kotlin
-import javax.persistence.Entity
-import javax.persistence.Id
-import javax.persistence.Table
+// Upsert a single entity
+val user = User(username = "john", email = "john@example.com")
+userRepository.upsert(user)
 
-@Entity
-@Table(name = "my_entity")
-data class MyEntity(
-    @Id
-    val id: Long,
-
-    val name: String,
-
-    val description: String? = null,
-
-    val active: Boolean = true
+// Upsert multiple entities
+val users = listOf(
+    User(username = "john", email = "john@example.com"),
+    User(username = "jane", email = "jane@example.com")
 )
+userRepository.upsertAll(users)
 ```
 
-When using JPA annotations:
-- Fields annotated with `@Id` or `@EmbeddedId` are automatically used as key fields
-- All non-key fields are automatically used as value fields
+### Custom ON Clauses and Ignored Fields
 
-### 3. Use the UpsertOperations interface
+You can also use custom ON clauses and ignored fields by defining methods in your repository interface with specific naming patterns:
 
 ```kotlin
-@Service
-class MyService(private val upsertOperations: UpsertOperations) {
-
-    fun saveEntity(entity: MyEntity): Int {
-        return upsertOperations.upsert(entity, "my_entity")
-    }
-
-    fun saveEntities(entities: List<MyEntity>): Int {
-        return upsertOperations.upsertAll(entities, "my_entity")
-    }
+interface UserRepository : UpsertRepository<User, Long> {
+    // Upsert using username as the ON clause
+    fun upsertOnUsername(user: User): Int
+    
+    // Upsert using username as the ON clause and ignoring updatedAt field
+    fun upsertOnUsernameIgnoringUpdatedAt(user: User): Int
+    
+    // Upsert all using username as the ON clause
+    fun upsertAllOnUsername(users: List<User>): Int
+    
+    // Upsert all using username as the ON clause and ignoring updatedAt field
+    fun upsertAllOnUsernameIgnoringUpdatedAt(users: List<User>): Int
+    
+    // Upsert using username and email as the ON clause
+    fun upsertOnUsernameAndEmail(user: User): Int
+    
+    // Upsert using username and email as the ON clause and ignoring all fields
+    // This will only insert new rows and not update existing ones
+    fun upsertOnUsernameAndEmailIgnoringAllFields(user: User): Int
 }
 ```
 
-### 4. Use the Repository extension
+The method name is parsed to extract the following information:
+- `upsert` or `upsertAll`: Whether to upsert a single entity or a list of entities
+- `On<FieldName>`: The field(s) to use for the ON clause (e.g., `OnUsername`, `OnUsernameAndEmail`)
+- `Ignoring<FieldName>`: The field(s) to ignore during updates (e.g., `IgnoringUpdatedAt`)
+- `IgnoringAllFields`: Whether to ignore all fields during updates (only insert new rows)
 
-You can also use the UpsertRepository interface to add upsert functionality to your Spring Data repositories:
+## Configuration
 
-```kotlin
-import si.pecan.upsert.repository.UpsertRepository
-
-interface MyEntityRepository : UpsertRepository<MyEntity, Long> {
-    // Other repository methods...
-}
-```
-
-Then you can use the repository to perform upsert operations:
-
-```kotlin
-@Service
-class MyService(private val repository: MyEntityRepository) {
-
-    fun saveEntity(entity: MyEntity): Int {
-        return repository.upsert(entity)
-    }
-
-    fun saveEntities(entities: List<MyEntity>): Int {
-        return repository.upsertAll(entities)
-    }
-}
-```
-
-### 5. Use the extension functions
-
-Alternatively, you can use the extension functions to add upsert functionality to any Spring Data repository:
-
-```kotlin
-import si.pecan.upsert.repository.upsert
-import si.pecan.upsert.repository.upsertAll
-import org.springframework.data.repository.CrudRepository
-
-@Service
-class MyService(
-    private val repository: CrudRepository<MyEntity, Long>,
-    private val upsertOperations: UpsertOperations,
-    private val entityManager: EntityManager
-) {
-
-    fun saveEntity(entity: MyEntity): Int {
-        return repository.upsert(entity, upsertOperations, entityManager)
-    }
-
-    fun saveEntities(entities: List<MyEntity>): Int {
-        return repository.upsertAll(entities, upsertOperations, entityManager)
-    }
-}
-```
-
-### 6. Auto-configuration
-
-The library provides auto-configuration for Spring Boot applications. When you add the library to your classpath, it will automatically configure the necessary beans based on the available dependencies.
-
-To use auto-configuration, you don't need to add any configuration to your application. Just add the dependency to your project, and the library will automatically configure itself.
-
-If you need to customize the configuration, you can provide your own beans with the same names as the auto-configured beans, and the auto-configuration will back off.
+To enable upsert capabilities, you need to include the `UpsertRepositoryFactoryBean` in your Spring configuration:
 
 ```kotlin
 @Configuration
-class MyCustomConfiguration {
-
-    @Bean
-    fun upsertDialectFactory(dataSource: DataSource): UpsertDialectFactory {
-        // Custom implementation
-        return CustomUpsertDialectFactory(dataSource)
-    }
-
-    @Bean
-    fun upsertDialect(dialectFactory: UpsertDialectFactory): UpsertDialect {
-        // Custom implementation
-        return CustomUpsertDialect()
-    }
-
-    @Bean
-    fun upsertOperations(jdbcTemplate: JdbcTemplate, dialect: UpsertDialect): UpsertOperations {
-        // Custom implementation
-        return CustomUpsertOperations(jdbcTemplate, dialect)
-    }
+@EnableJpaRepositories(
+    repositoryFactoryBeanClass = UpsertRepositoryFactoryBean::class
+)
+class AppConfig {
+    // ...
 }
 ```
 
 ## Implementation Details
 
-The library consists of the following components:
+The upsert functionality is implemented using database-specific SQL syntax:
+- For PostgreSQL, it uses the `INSERT ... ON CONFLICT ... DO UPDATE` syntax
+- For MySQL, it uses the `INSERT ... ON DUPLICATE KEY UPDATE` syntax
 
-1. **Annotations**: `@Upsert`, `@UpsertKey`, and `@UpsertValue` for marking methods and fields for upsert operations.
-2. **Dialects**: `PostgreSqlUpsertDialect` and `MySqlUpsertDialect` for generating database-specific SQL.
-3. **Processor**: `UpsertProcessor` for processing entity classes and generating SQL.
-4. **Operations**: `UpsertOperations` interface and `JdbcUpsertOperations` implementation for executing upsert operations.
-5. **Repository**: `UpsertRepository` interface and `UpsertRepositoryImpl` implementation for integrating with Spring Data repositories.
-6. **Extensions**: Extension functions for adding upsert functionality to any Spring Data repository.
-7. **Configuration**: `UpsertConfiguration` for manual configuration and `UpsertAutoConfiguration` for automatic configuration based on classpath libraries.
-
-## Database Support
-
-### PostgreSQL
-
-Uses the `INSERT ... ON CONFLICT ... DO UPDATE` syntax:
-
-```sql
-INSERT INTO table_name (id, name, description, active) 
-VALUES (?, ?, ?, ?) 
-ON CONFLICT (id) DO UPDATE SET 
-name = EXCLUDED.name, 
-description = EXCLUDED.description, 
-active = EXCLUDED.active
-```
-
-### MySQL
-
-Uses the `INSERT ... ON DUPLICATE KEY UPDATE` syntax:
-
-```sql
-INSERT INTO table_name (id, name, description, active) 
-VALUES (?, ?, ?, ?) 
-ON DUPLICATE KEY UPDATE 
-name = VALUES(name), 
-description = VALUES(description), 
-active = VALUES(active)
-```
+The implementation automatically detects the database type and uses the appropriate syntax.
 
 ## License
 

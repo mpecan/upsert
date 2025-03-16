@@ -61,6 +61,27 @@ abstract class AbstractJdbcUpsertOperations(
     }
 
     /**
+     * Perform an upsert operation for the given entity with custom ON clause and ignored fields.
+     *
+     * @param entity The entity to upsert
+     * @param tableName The table name
+     * @param onFields The fields to use for the ON clause
+     * @param ignoredFields The fields to ignore during updates
+     * @param ignoreAllFields Whether to ignore all fields during updates
+     * @param <T> The entity type
+     * @return The number of rows affected
+     */
+    override fun <T : Any> upsert(
+        entity: T,
+        tableName: String,
+        onFields: List<String>,
+        ignoredFields: List<String>,
+        ignoreAllFields: Boolean
+    ): Int {
+        return upsertAll(listOf(entity), tableName, onFields, ignoredFields, ignoreAllFields)
+    }
+
+    /**
      * Get the key fields from the entity class.
      * Uses a cache to avoid repeated reflection.
      *
@@ -75,6 +96,26 @@ abstract class AbstractJdbcUpsertOperations(
                     it.isAnnotationPresent(Id::class.java) ||
                     it.isAnnotationPresent(EmbeddedId::class.java)
                 }
+        }
+    }
+
+    /**
+     * Get the key fields from the entity class based on field names.
+     *
+     * @param entityClass The entity class
+     * @param fieldNames The field names to use as keys
+     * @return The list of key fields
+     */
+    protected fun getKeyFieldsByName(entityClass: Class<*>, fieldNames: List<String>): List<Field> {
+        // Convert field names to column names
+        val columnNames = fieldNames.map { it.toLowerCase() }
+
+        // Get all fields from the entity class
+        return entityClass.declaredFields.filter { field ->
+            // Get the column name for the field
+            val columnName = getColumnName(field).toLowerCase()
+            // Check if the column name is in the list of column names
+            columnNames.contains(columnName)
         }
     }
 
@@ -95,6 +136,56 @@ abstract class AbstractJdbcUpsertOperations(
     }
 
     /**
+     * Get the value fields from the entity class, excluding specified fields.
+     *
+     * @param entityClass The entity class
+     * @param keyFields The key fields to exclude
+     * @param ignoredFields The field names to ignore
+     * @param ignoreAllFields Whether to ignore all fields
+     * @return The list of value fields
+     */
+    protected fun getValueFieldsExcluding(
+        entityClass: Class<*>,
+        keyFields: List<Field>,
+        ignoredFields: List<String>,
+        ignoreAllFields: Boolean
+    ): List<Field> {
+        // If ignoreAllFields is true, return an empty list
+        if (ignoreAllFields) {
+            return emptyList()
+        }
+
+        // Convert ignored field names to column names
+        val ignoredColumnNames = ignoredFields.map { it.toLowerCase() }
+
+        // Get all fields from the entity class
+        return entityClass.declaredFields.filter { field ->
+            // Exclude key fields
+            !keyFields.contains(field) &&
+            // Exclude ignored fields
+            !ignoredColumnNames.contains(getColumnName(field).toLowerCase())
+        }
+    }
+
+    /**
+     * Get the column name for a field.
+     *
+     * @param field The field
+     * @return The column name
+     */
+    protected fun getColumnName(field: Field): String {
+        // Check if the field has a @Column annotation
+        val columnAnnotation = field.getAnnotation(Column::class.java)
+        return if (columnAnnotation != null && columnAnnotation.name.isNotBlank()) {
+            // Use the column name from the annotation
+            columnAnnotation.name
+        } else {
+            // Use the field name as the column name
+            field.name
+        }
+    }
+
+    /**
      * Extract parameter values from the entity.
      *
      * @param entity The entity
@@ -109,6 +200,29 @@ abstract class AbstractJdbcUpsertOperations(
         // Get value fields (all non-key fields)
         val valueFields = getValueFields(entityClass)
 
+        // Combine key and value fields
+        val allFields = keyFields + valueFields
+
+        // Extract values from fields
+        return allFields.map { field ->
+            field.isAccessible = true
+            field.get(entity)
+        }
+    }
+
+    /**
+     * Extract parameter values from the entity using custom key and value fields.
+     *
+     * @param entity The entity
+     * @param keyFields The key fields
+     * @param valueFields The value fields
+     * @return The list of parameter values
+     */
+    protected fun <T : Any> extractParameterValues(
+        entity: T,
+        keyFields: List<Field>,
+        valueFields: List<Field>
+    ): List<Any?> {
         // Combine key and value fields
         val allFields = keyFields + valueFields
 

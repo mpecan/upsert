@@ -68,6 +68,53 @@ class PostgreSqlJdbcUpsertOperations(
         return results.sum()
     }
 
+    /**
+     * Perform an upsert operation for the given list of entities with custom ON clause and ignored fields.
+     * Uses PostgreSQL's optimized batch operations with named parameters.
+     *
+     * @param entities The list of entities to upsert
+     * @param tableName The table name
+     * @param onFields The fields to use for the ON clause
+     * @param ignoredFields The fields to ignore during updates
+     * @param ignoreAllFields Whether to ignore all fields during updates
+     * @param <T> The entity type
+     * @return The total number of rows affected
+     */
+    override fun <T : Any> upsertAll(
+        entities: List<T>,
+        tableName: String,
+        onFields: List<String>,
+        ignoredFields: List<String>,
+        ignoreAllFields: Boolean
+    ): Int {
+        if (entities.isEmpty()) {
+            return 0
+        }
+
+        // Generate the SQL for the custom upsert
+        val entityClass = entities.first().javaClass
+        val sql = processor.processBatchUpsertEntityCustom(
+            entityClass,
+            tableName,
+            1,
+            onFields,
+            ignoredFields,
+            ignoreAllFields
+        )
+
+        // Create parameter sources for each entity
+        val paramSources = entities.map { entity -> 
+            ExtendedBeanPropertySqlParameterSource(entity)
+        }.toTypedArray()
+
+        // Create a NamedParameterJdbcTemplate
+        val namedJdbcTemplate = NamedParameterJdbcTemplate(jdbcTemplate)
+
+        // Execute batch update and sum the results
+        val results = namedJdbcTemplate.batchUpdate(sql, paramSources)
+        return results.sum()
+    }
+
     companion object {
         /**
          * Factory method to create a PostgreSqlJdbcUpsertOperations instance.

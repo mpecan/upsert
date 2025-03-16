@@ -1,17 +1,17 @@
 package si.pecan.upsert.repository
 
-import org.springframework.data.repository.Repository
 import org.springframework.data.repository.NoRepositoryBean
+import org.springframework.data.repository.Repository
 
 /**
- * Repository interface with upsert capabilities.
+ * Base repository interface with upsert capabilities.
  * This interface extends Spring Data's Repository interface and adds upsert functionality.
  *
  * @param T The entity type
  * @param ID The type of the entity's ID
  */
 @NoRepositoryBean
-interface UpsertRepository<T : Any, ID> : Repository<T, ID> {
+interface BaseUpsertRepository<T : Any, ID> : Repository<T, ID> {
     
     /**
      * Perform an upsert operation for the given entity.
@@ -43,7 +43,7 @@ interface UpsertRepository<T : Any, ID> : Repository<T, ID> {
         onFields: List<String>,
         ignoredFields: List<String>,
         ignoreAllFields: Boolean
-    ) : Int
+    ): Int
 
     /**
      * Perform an upsert operation for the given list of entities with custom ON clause and ignored fields.

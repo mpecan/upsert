@@ -1,6 +1,7 @@
 package si.pecan.upsert.integration
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
@@ -17,6 +18,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import si.pecan.upsert.entity.JpaTestEntity
+import si.pecan.upsert.repository.UpsertRepository
 import si.pecan.upsert.repository.UpsertRepositoryFactoryBean
 
 /**
@@ -64,6 +66,9 @@ class PostgreSqlRepositoryIntegrationTest {
 
     @Autowired
     private lateinit var jpaTestEntityRepository: JpaTestEntityRepository
+
+    @Autowired
+    private lateinit var customMethodsTestRepository: CustomMethodsTestRepository
 
     @Autowired
     private lateinit var jdbcTemplate: JdbcTemplate
@@ -138,7 +143,8 @@ class PostgreSqlRepositoryIntegrationTest {
         assertEquals(3, rowsAffected)
 
         // Verify the entities were inserted
-        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (5, 6, 7) ORDER BY id")
+        val results =
+            jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (5, 6, 7) ORDER BY id")
         assertEquals(3, results.size)
 
         assertEquals(5L, results[0]["id"])
@@ -180,7 +186,8 @@ class PostgreSqlRepositoryIntegrationTest {
         assertEquals(2, rowsAffected) // PostgreSQL returns 1 for each update
 
         // Verify the entities were updated
-        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (8, 9) ORDER BY id")
+        val results =
+            jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (8, 9) ORDER BY id")
         assertEquals(2, results.size)
 
         assertEquals(8L, results[0]["id"])
@@ -198,11 +205,28 @@ class PostgreSqlRepositoryIntegrationTest {
     fun `should handle mix of new and existing jpa entities using repository`() {
         // Given
         // Insert an entity that will be updated
-        jpaTestEntityRepository.upsert(JpaTestEntity(10, "Original Entity", "Original Description", true))
+        jpaTestEntityRepository.upsert(
+            JpaTestEntity(
+                10,
+                "Original Entity",
+                "Original Description",
+                true
+            )
+        )
 
         val mixedEntities = listOf(
-            JpaTestEntity(10, "Updated Entity", "Updated Description", false), // Existing entity to update
-            JpaTestEntity(11, "New Entity", "New Description", true)          // New entity to insert
+            JpaTestEntity(
+                10,
+                "Updated Entity",
+                "Updated Description",
+                false
+            ), // Existing entity to update
+            JpaTestEntity(
+                11,
+                "New Entity",
+                "New Description",
+                true
+            )          // New entity to insert
         )
 
         // When
@@ -212,7 +236,8 @@ class PostgreSqlRepositoryIntegrationTest {
         assertEquals(2, rowsAffected) // 1 for update + 1 for insert
 
         // Verify the entities
-        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (10, 11) ORDER BY id")
+        val results =
+            jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity WHERE id IN (10, 11) ORDER BY id")
         assertEquals(2, results.size)
 
         assertEquals(10L, results[0]["id"])
@@ -256,4 +281,109 @@ class PostgreSqlRepositoryIntegrationTest {
         // Then
         assertEquals(0, rowsAffected)
     }
+
+    /**
+     * Tests for custom method functionality.
+     * These tests verify that the UpsertMethodNameParser and UpsertMethodInvoker work correctly.
+     */
+
+    @Test
+    fun `should parse upsert method names correctly`() {
+        // Create a parser
+        val parser = si.pecan.upsert.repository.UpsertMethodNameParser()
+
+        // Test parsing "upsertOnName"
+        val info1 = parser.parse("upsertOnName")
+        assertNotNull(info1)
+        assertEquals(false, info1!!.isUpsertAll)
+        assertEquals(listOf("name"), info1.onFields)
+        assertEquals(emptyList<String>(), info1.ignoredFields)
+        assertEquals(false, info1.ignoreAllFields)
+
+        // Test parsing "upsertOnNameIgnoringActive"
+        val info2 = parser.parse("upsertOnNameIgnoringActive")
+        assertNotNull(info2)
+        assertEquals(false, info2!!.isUpsertAll)
+        assertEquals(listOf("name"), info2.onFields)
+        assertEquals(listOf("active"), info2.ignoredFields)
+        assertEquals(false, info2.ignoreAllFields)
+
+        // Test parsing "upsertOnNameAndDescriptionIgnoringActive"
+        val info3 = parser.parse("upsertOnNameAndDescriptionIgnoringActive")
+        assertNotNull(info3)
+        assertEquals(false, info3!!.isUpsertAll)
+        assertEquals(listOf("name", "description"), info3.onFields)
+        assertEquals(listOf("active"), info3.ignoredFields)
+        assertEquals(false, info3.ignoreAllFields)
+
+        // Test parsing "upsertOnNameIgnoringAllFields"
+        val info4 = parser.parse("upsertOnNameIgnoringAllFields")
+        assertNotNull(info4)
+        assertEquals(false, info4!!.isUpsertAll)
+        assertEquals(listOf("name"), info4.onFields)
+        assertEquals(emptyList<String>(), info4.ignoredFields)
+        assertEquals(true, info4.ignoreAllFields)
+
+        // Test parsing "upsertAllOnName"
+        val info5 = parser.parse("upsertAllOnName")
+        assertNotNull(info5)
+        assertEquals(true, info5!!.isUpsertAll)
+        assertEquals(listOf("name"), info5.onFields)
+        assertEquals(emptyList<String>(), info5.ignoredFields)
+        assertEquals(false, info5.ignoreAllFields)
+    }
+
+    // TODO: Change these two tests to assert that we will have an exception when trying to use ON clause with fields that do not have an associated unique constraint
+//    @Test
+//    fun `should handle custom upsert operations using reflection`() {
+//        // Given
+//        val entity1 = JpaTestEntity(1, "Test Entity", "Original Description", true)
+//        val entity2 = JpaTestEntity(2, "Test Entity", "Updated Description", false)
+//
+//        // Insert the first entity
+//        jpaTestEntityRepository.upsert(entity1)
+//
+//
+//        // When - upsert with the same name but different ID
+//        val rowsAffected = customMethodsTestRepository.upsertOnName(entity2)
+//
+//        // Then
+//        assertEquals(1, rowsAffected)
+//
+//        // Verify that the entity was updated based on name, not ID
+//        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity ORDER BY id")
+//        assertEquals(1, results.size)
+//
+//        // The ID should still be 1 (from the first entity), but other fields should be updated
+//        assertEquals(1L, results[0]["id"])
+//        assertEquals("Test Entity", results[0]["name"])
+//        assertEquals("Updated Description", results[0]["description"])
+//        assertEquals(false, results[0]["active"])
+//    }
+
+//    @Test
+//    fun `should handle custom upsert operations with ignored fields`() {
+//        // Given
+//        val entity1 = JpaTestEntity(1, "Test Entity", "Original Description", true)
+//        val entity2 = JpaTestEntity(2, "Test Entity", "Updated Description", false)
+//
+//        // Insert the first entity
+//        jpaTestEntityRepository.upsert(entity1)
+//
+//
+//        val rowsAffected = customMethodsTestRepository.upsertOnNameIgnoringActive(entity2)
+//
+//        // Then
+//        assertEquals(1, rowsAffected)
+//
+//        // Verify that the entity was updated based on name, but active field was not updated
+//        val results = jdbcTemplate.queryForList("SELECT * FROM jpa_test_entity ORDER BY id")
+//        assertEquals(1, results.size)
+//
+//        // The ID should still be 1, description should be updated, but active should remain true
+//        assertEquals(1L, results[0]["id"])
+//        assertEquals("Test Entity", results[0]["name"])
+//        assertEquals("Updated Description", results[0]["description"])
+//        assertEquals(true, results[0]["active"]) // Active field should not be updated
+//    }
 }

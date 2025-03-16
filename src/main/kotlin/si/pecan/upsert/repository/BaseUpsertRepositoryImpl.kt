@@ -1,52 +1,42 @@
 package si.pecan.upsert.repository
 
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.data.repository.core.RepositoryMetadata
-import javax.annotation.PostConstruct
+import org.springframework.data.jpa.repository.support.SimpleJpaRepository
+import org.springframework.data.repository.core.EntityInformation
 import javax.persistence.EntityManager
 import javax.persistence.Table
 
 /**
- * Implementation of UpsertRepository.
+ * Implementation of BaseUpsertRepository.
  * This class provides the implementation for the upsert and upsertAll methods.
  *
  * @param T The entity type
  * @param ID The type of the entity's ID
  */
-class UpsertRepositoryImpl<T : Any, ID>(
-    private val metadata: RepositoryMetadata? = null
-) : UpsertRepository<T, ID> {
+class BaseUpsertRepositoryImpl<T : Any, ID : Any>(
+    private val entityInformation: EntityInformation<T, ID>,
+    private val entityManager: EntityManager
+) : SimpleJpaRepository<T, ID>(entityInformation.javaType, entityManager), BaseUpsertRepository<T, ID> {
 
-    @Autowired
     private lateinit var upsertOperations: UpsertOperations
-
-    @Autowired
-    private lateinit var entityManager: EntityManager
 
     // Cache for table names by entity class
     private val tableNameCache = mutableMapOf<Class<*>, String>()
 
-    // Store the entity class and ID class
-    private var entityClass: Class<*>? = null
-    private var idClass: Class<*>? = null
-
     /**
-     * Initialize the repository with entity class and ID class from metadata.
-     * This method is called by Spring after all dependencies are injected.
+     * Set the UpsertOperations instance.
+     * This method is called by the UpsertRepositoryFactoryBean.
+     *
+     * @param upsertOperations The UpsertOperations instance
      */
-    @PostConstruct
-    fun init() {
-        if (metadata != null) {
-            // Extract entity class and ID class from metadata
-            entityClass = metadata.domainType
-            idClass = metadata.idType
-
-            // Get the table name for the entity class
-            val tableName = getTableName(entityClass!!)
-
-            // Initialize the upsert operations with entity class and ID class
-            upsertOperations.initialize(entityClass!!, idClass!!, tableName)
-        }
+    fun setUpsertOperations(upsertOperations: UpsertOperations) {
+        this.upsertOperations = upsertOperations
+        
+        // Initialize the upsert operations with entity class and ID class
+        val entityClass = entityInformation.javaType
+        val idClass = entityInformation.idType
+        val tableName = getTableName(entityClass)
+        
+        upsertOperations.initialize(entityClass, idClass, tableName)
     }
 
     /**
@@ -58,31 +48,6 @@ class UpsertRepositoryImpl<T : Any, ID>(
     override fun upsert(entity: T): Int {
         val tableName = getTableName(entity.javaClass)
         return upsertOperations.upsert(entity, tableName)
-    }
-
-    /**
-     * Perform an upsert operation for the given entity with custom ON clause and ignored fields.
-     *
-     * @param entity The entity to upsert
-     * @param tableName The table name
-     * @param onFields The fields to use for the ON clause
-     * @param ignoredFields The fields to ignore during updates
-     * @param ignoreAllFields Whether to ignore all fields during updates
-     * @return The number of rows affected
-     */
-    override fun upsert(
-        entity: T,
-        onFields: List<String>,
-        ignoredFields: List<String>,
-        ignoreAllFields: Boolean
-    ): Int {
-        return upsertOperations.upsert(
-            entity,
-            getTableName(entity.javaClass),
-            onFields,
-            ignoredFields,
-            ignoreAllFields
-        )
     }
 
     /**
@@ -101,10 +66,28 @@ class UpsertRepositoryImpl<T : Any, ID>(
     }
 
     /**
+     * Perform an upsert operation for the given entity with custom ON clause and ignored fields.
+     *
+     * @param entity The entity to upsert
+     * @param onFields The fields to use for the ON clause
+     * @param ignoredFields The fields to ignore during updates
+     * @param ignoreAllFields Whether to ignore all fields during updates
+     * @return The number of rows affected
+     */
+    override fun upsert(
+        entity: T,
+        onFields: List<String>,
+        ignoredFields: List<String>,
+        ignoreAllFields: Boolean
+    ): Int {
+        val tableName = getTableName(entity.javaClass)
+        return upsertOperations.upsert(entity, tableName, onFields, ignoredFields, ignoreAllFields)
+    }
+
+    /**
      * Perform an upsert operation for the given list of entities with custom ON clause and ignored fields.
      *
      * @param entities The list of entities to upsert
-     * @param tableName The table name
      * @param onFields The fields to use for the ON clause
      * @param ignoredFields The fields to ignore during updates
      * @param ignoreAllFields Whether to ignore all fields during updates
@@ -120,13 +103,8 @@ class UpsertRepositoryImpl<T : Any, ID>(
             return 0
         }
 
-        return upsertOperations.upsertAll(
-            entities,
-            getTableName(entities[0].javaClass),
-            onFields,
-            ignoredFields,
-            ignoreAllFields
-        )
+        val tableName = getTableName(entities.first().javaClass)
+        return upsertOperations.upsertAll(entities, tableName, onFields, ignoredFields, ignoreAllFields)
     }
 
     /**
@@ -136,7 +114,7 @@ class UpsertRepositoryImpl<T : Any, ID>(
      * @param entityClass The entity class
      * @return The table name
      */
-    fun getTableName(entityClass: Class<*>): String {
+    private fun getTableName(entityClass: Class<*>): String {
         // Check the cache first
         return tableNameCache.getOrPut(entityClass) {
             // Try to get the table name from @Table annotation

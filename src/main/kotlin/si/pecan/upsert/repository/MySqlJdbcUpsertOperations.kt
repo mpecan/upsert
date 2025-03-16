@@ -109,6 +109,50 @@ class MySqlJdbcUpsertOperations(
     }
 
     /**
+     * Perform an upsert operation for the given list of entities with custom ON clause and ignored fields.
+     * Uses MySQL's regular batch operations with positional parameters.
+     *
+     * @param entities The list of entities to upsert
+     * @param tableName The table name
+     * @param onFields The fields to use for the ON clause
+     * @param ignoredFields The fields to ignore during updates
+     * @param ignoreAllFields Whether to ignore all fields during updates
+     * @param <T> The entity type
+     * @return The total number of rows affected
+     */
+    override fun <T : Any> upsertAll(
+        entities: List<T>,
+        tableName: String,
+        onFields: List<String>,
+        ignoredFields: List<String>,
+        ignoreAllFields: Boolean
+    ): Int {
+        if (entities.isEmpty()) {
+            return 0
+        }
+
+        val entityClass = entities.first().javaClass
+
+        // Generate the SQL for the custom upsert
+        val sql = processor.processBatchUpsertEntityCustom(
+            entityClass,
+            tableName,
+            entities.size,
+            onFields,
+            ignoredFields,
+            ignoreAllFields
+        )
+
+        // For regular batch operations, extract parameter values from all entities
+        val allParamValues = entities.flatMap { entity -> 
+            extractParameterValues(entity)
+        }
+
+        // Execute the SQL with all parameters
+        return jdbcTemplate.update(sql, *allParamValues.toTypedArray())
+    }
+
+    /**
      * Extract the VALUES part from a batch query by comparing it with a single-entity query.
      *
      * @param singleEntityQuery The query for a single entity
