@@ -46,7 +46,7 @@ class PostgreSqlIntegrationTest {
         jdbcTemplate = JdbcTemplate(dataSource)
 
         // Set up the upsert operations
-        upsertOperations = JdbcUpsertOperations(jdbcTemplate, PostgreSqlUpsertDialect())
+        upsertOperations = JdbcUpsertOperations.forPostgreSql(jdbcTemplate)
 
         jdbcTemplate.execute("""
             CREATE TABLE IF NOT EXISTS jpa_test_entity (
@@ -99,7 +99,7 @@ class PostgreSqlIntegrationTest {
         assertEquals("Updated JPA Description", result["description"])
         assertEquals(false, result["active"])
     }
-    
+
     @Test
     fun `should upsert multiple entities`() {
         // Given
@@ -153,7 +153,7 @@ class PostgreSqlIntegrationTest {
 
         // When
         val rowsAffected = upsertOperations.upsertAll(updatedEntities, "jpa_test_entity")
-        
+
         // Then
         assertEquals(2, rowsAffected) // 1 row affected per entity updated
 

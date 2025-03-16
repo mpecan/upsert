@@ -46,7 +46,7 @@ class MySqlIntegrationTest {
         jdbcTemplate = JdbcTemplate(dataSource)
 
         // Set up the upsert operations
-        upsertOperations = JdbcUpsertOperations(jdbcTemplate, MySqlUpsertDialect())
+        upsertOperations = JdbcUpsertOperations.forMySql(jdbcTemplate)
 
         // Create the test tables
         jdbcTemplate.execute("""

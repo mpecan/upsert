@@ -45,8 +45,7 @@ class ConverterIntegrationTest {
         jdbcTemplate = JdbcTemplate(dataSource)
 
         // Create the UpsertOperations
-        val dialect = PostgreSqlUpsertDialect()
-        upsertOperations = JdbcUpsertOperations(jdbcTemplate, dialect)
+        upsertOperations = JdbcUpsertOperations.forPostgreSql(jdbcTemplate)
 
         // Create the test tables
         jdbcTemplate.execute("""
