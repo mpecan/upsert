@@ -1,7 +1,6 @@
 package si.pecan.upsert.repository
 
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.data.repository.NoRepositoryBean
 import javax.persistence.EntityManager
 import javax.persistence.Table
 

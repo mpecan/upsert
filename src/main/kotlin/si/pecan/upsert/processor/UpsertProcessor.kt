@@ -7,7 +7,7 @@ import javax.persistence.EmbeddedId
 import javax.persistence.Id
 
 /**
- * Processor for handling @Upsert annotations and generating the appropriate SQL.
+ * Processor for handling JPA entities and generating the appropriate SQL for upsert operations.
  */
 class UpsertProcessor(private val dialect: UpsertDialect) {
 
@@ -37,10 +37,10 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
 
         // Check if we have at least one key column and one value column
         if (keyColumns.isEmpty()) {
-            throw IllegalArgumentException("No key fields found in ${entityClass.name}. Use @UpsertKey, @Id, or @EmbeddedId annotations to mark key fields.")
+            throw IllegalArgumentException("No key fields found in ${entityClass.name}. Use @Id or @EmbeddedId annotations to mark key fields.")
         }
         if (valueColumns.isEmpty()) {
-            throw IllegalArgumentException("No value fields found in ${entityClass.name}. Either use @UpsertValue annotations or ensure there are non-key fields in the entity.")
+            throw IllegalArgumentException("No value fields found in ${entityClass.name}. Ensure there are non-key fields in the entity.")
         }
 
         // Generate the SQL using the regular batch method
@@ -57,7 +57,7 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
     }
 
     /**
-     * Get the column names for fields annotated with @UpsertKey, @Id, or @EmbeddedId.
+     * Get the column names for fields annotated with @Id or @EmbeddedId.
      *
      * @param entityClass The entity class
      * @return The list of column names
@@ -83,8 +83,8 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
     }
 
     /**
-     * Get the column names for fields annotated with @UpsertValue.
-     * If no fields are annotated with @UpsertValue, all non-key fields are considered value columns.
+     * Get the column names for all non-key fields.
+     * All fields that are not annotated with @Id or @EmbeddedId are considered value columns.
      *
      * @param entityClass The entity class
      * @return The list of column names

@@ -40,7 +40,7 @@ class UpsertProcessorTest {
         val exception = assertThrows(IllegalArgumentException::class.java) {
             processor.processUpsertEntity(EntityWithNoKey::class.java, "entity_with_no_key")
         }
-        assertEquals("No key fields found in ${EntityWithNoKey::class.java.name}. Use @UpsertKey, @Id, or @EmbeddedId annotations to mark key fields.", exception.message)
+        assertEquals("No key fields found in ${EntityWithNoKey::class.java.name}. Use @Id or @EmbeddedId annotations to mark key fields.", exception.message)
     }
 
     @Test
@@ -55,6 +55,6 @@ class UpsertProcessorTest {
         val exception = assertThrows(IllegalArgumentException::class.java) {
             processor.processUpsertEntity(EntityWithNoValue::class.java, "entity_with_no_value")
         }
-        assertEquals("No value fields found in ${EntityWithNoValue::class.java.name}. Either use @UpsertValue annotations or ensure there are non-key fields in the entity.", exception.message)
+        assertEquals("No value fields found in ${EntityWithNoValue::class.java.name}. Ensure there are non-key fields in the entity.", exception.message)
     }
 }
