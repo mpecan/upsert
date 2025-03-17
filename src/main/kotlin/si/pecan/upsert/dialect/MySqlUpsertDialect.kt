@@ -23,12 +23,14 @@ class MySqlUpsertDialect : UpsertDialect {
         batchSize: Int
     ): String {
         val allColumns = keyColumns + valueColumns
-        val placeholdersPerEntity = allColumns.indices.map { "?" }.joinToString(", ")
 
         // Create placeholders for all entities in the batch
-        val allPlaceholders = (1..batchSize).joinToString(", ") { "($placeholdersPerEntity)" }
+        val allPlaceholders = (1..batchSize).joinToString(", ") {
+            "(${allColumns.map { column -> ":${column.name}_${it}" }.joinToString(", ")})"
+        }
 
-        val insertClause = "INSERT INTO $tableName (${allColumns.joinToString(", "){it.name}}) VALUES $allPlaceholders"
+        val insertClause =
+            "INSERT INTO $tableName (${allColumns.joinToString(", ") { it.name }}) VALUES $allPlaceholders"
 
         val updateClause = valueColumns.joinToString(", ") { "${it.name} = VALUES(${it.name})" }
 

@@ -1,7 +1,8 @@
 package si.pecan.upsert.repository
 
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.jdbc.core.RowMapper
+import org.springframework.jdbc.core.*
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.jdbc.support.GeneratedKeyHolder
 import si.pecan.upsert.dialect.MySqlUpsertDialect
 import si.pecan.upsert.dialect.UpsertDialect
 import java.lang.reflect.Field
@@ -17,8 +18,6 @@ class MySqlJdbcUpsertOperations(
     dialect: UpsertDialect
 ) : AbstractJdbcUpsertOperations(jdbcTemplate, dialect) {
 
-    // Store the pre-generated base query
-    private var baseQueryTemplate: String? = null
 
     /**
      * Initialize the operations with entity class and ID class.
@@ -35,40 +34,8 @@ class MySqlJdbcUpsertOperations(
         // Generate a query for a single entity to use as a template
         val singleEntityQuery = processor.processBatchUpsertEntity(entityClass, tableName, 1)
 
-        // Extract the base query template (everything except the VALUES part)
-        // The template will have a placeholder for the VALUES part
-        baseQueryTemplate = extractBaseQueryTemplate(singleEntityQuery)
     }
 
-    /**
-     * Extract the base query template from a single-entity query.
-     * This removes the VALUES part and replaces it with a placeholder.
-     *
-     * @param singleEntityQuery The query for a single entity
-     * @return The base query template
-     */
-    private fun extractBaseQueryTemplate(singleEntityQuery: String): String {
-        // Find the VALUES part
-        val valuesIndex = singleEntityQuery.indexOf(" VALUES ")
-        if (valuesIndex == -1) {
-            return singleEntityQuery
-        }
-
-        // Extract the part before VALUES
-        val beforeValues = singleEntityQuery.substring(0, valuesIndex + " VALUES ".length)
-
-        // Find the ON DUPLICATE KEY UPDATE part
-        val onDuplicateIndex = singleEntityQuery.indexOf(" ON DUPLICATE KEY UPDATE ")
-        if (onDuplicateIndex == -1) {
-            return beforeValues + "%VALUES_PLACEHOLDER%"
-        }
-
-        // Extract the part after the first set of values
-        val afterValues = singleEntityQuery.substring(onDuplicateIndex)
-
-        // Combine the parts with a placeholder for the VALUES part
-        return beforeValues + "%VALUES_PLACEHOLDER%" + afterValues
-    }
 
     /**
      * Perform an upsert operation for the given list of entities.
@@ -88,32 +55,80 @@ class MySqlJdbcUpsertOperations(
         val entityClass = entities.first().javaClass
 
         // Use the pre-generated base query template if available and for the same table
-        val sql = if (baseQueryTemplate != null && this.tableName == tableName) {
-            // Generate the VALUES part for the current batch size
-            val singleEntityQuery = processor.processBatchUpsertEntity(entityClass, tableName, 1)
-            val batchQuery = processor.processBatchUpsertEntity(entityClass, tableName, entities.size)
+        val sql = processor.processBatchUpsertEntity(entityClass, tableName, entities.size)
 
-            // Extract the VALUES part from the batch query
-            val valuesPart = extractValuesPart(singleEntityQuery, batchQuery)
-
-            // Replace the placeholder with the actual VALUES part
-            baseQueryTemplate!!.replace("%VALUES_PLACEHOLDER%", valuesPart)
-        } else {
-            // Fall back to generating the full query
-            processor.processBatchUpsertEntity(entityClass, tableName, entities.size)
-        }
 
         // For regular batch operations, extract parameter values from all entities
-        val allParamValues = entities.flatMap { entity -> 
-            extractParameterValues(entity)
+        val allParamValues = entities.mapIndexed { index, entity ->
+            ExtendedBeanPropertySqlParameterSource(entity)
+        }.let { IndexedBeanPropertySqlParameterSource(it) }
+
+        val keyHolder = GeneratedKeyHolder()
+        // Execute the SQL with all parameters
+        val namedParameterJdbcTemplate = NamedParameterJdbcTemplate(jdbcTemplate)
+        namedParameterJdbcTemplate.update(sql, allParamValues, keyHolder)
+
+        // Update entities with generated keys
+        val keysList = keyHolder.keyList
+        println("[DEBUG_LOG] Generated keys: $keysList")
+
+        if (keysList.isNotEmpty()) {
+            // Get the ID field from the entity class
+            val idField = getKeyFields(entityClass).firstOrNull()
+            println("[DEBUG_LOG] ID field: $idField, type: ${idField?.type}")
+
+            if (idField != null) {
+                // Make the field accessible
+                idField.isAccessible = true
+
+                // Update each entity with its generated key
+                entities.forEachIndexed { index, entity ->
+                    // Check if the entity already has an ID
+                    val existingId = idField.get(entity)
+                    println("[DEBUG_LOG] Entity $index existing ID: $existingId")
+
+                    // Only set the generated key if the entity doesn't already have an ID
+                    if (existingId == null && index < keysList.size) {
+                        val keys = keysList[index]
+                        println("[DEBUG_LOG] Keys for entity $index: $keys")
+
+                        // Try different key names that might be used by the database
+                        val possibleKeyNames = listOf("GENERATED_KEY", "GENERATED_KEYS", "id", "ID")
+                        var generatedKey: Any? = null
+
+                        for (keyName in possibleKeyNames) {
+                            generatedKey = keys[keyName]
+                            if (generatedKey != null) {
+                                println("[DEBUG_LOG] Found generated key with name '$keyName': $generatedKey (${generatedKey.javaClass})")
+                                break
+                            }
+                        }
+
+                        if (generatedKey != null) {
+                            try {
+                                // Convert the key to the appropriate type and set it on the entity
+                                val convertedKey = convertToFieldType(generatedKey, idField)
+                                println("[DEBUG_LOG] Converted key: $convertedKey (${convertedKey.javaClass})")
+                                idField.set(entity, convertedKey)
+                                println("[DEBUG_LOG] Set ID field to: ${idField.get(entity)}")
+                            } catch (e: Exception) {
+                                println("[DEBUG_LOG] Error setting ID field: ${e.message}")
+                                e.printStackTrace()
+                            }
+                        } else {
+                            println("[DEBUG_LOG] No generated key found in keys: $keys")
+                        }
+                    } else {
+                        println("[DEBUG_LOG] Entity $index already has ID: $existingId, not setting generated key")
+                    }
+                }
+            }
+        } else {
+            println("[DEBUG_LOG] No keys generated")
         }
 
-        // Execute the SQL with all parameters
-        jdbcTemplate.update(sql, *allParamValues.toTypedArray())
-
-        // According to the issue description, we only want to support generated keys,
-        // not returning the entire entity. So we just return the original entities.
-        return entities
+        // Fetch the entities after the upsert operation to get any generated IDs
+        return fetchEntitiesAfterUpsert(entities, tableName)
     }
 
     /**
@@ -152,16 +167,18 @@ class MySqlJdbcUpsertOperations(
         )
 
         // For regular batch operations, extract parameter values from all entities
-        val allParamValues = entities.flatMap { entity -> 
+        val allParamValues = entities.flatMap { entity ->
             extractParameterValues(entity)
         }
 
+        val keyHolder = GeneratedKeyHolder()
         // Execute the SQL with all parameters
-        jdbcTemplate.update(sql, *allParamValues.toTypedArray())
+        jdbcTemplate.update(sql, *allParamValues.toTypedArray(), keyHolder)
 
-        // According to the issue description, we only want to support generated keys,
-        // not returning the entire entity. So we just return the original entities.
-        return entities
+        // Update the entities with any generated IDs
+        val updatedEntities = entities.toMutableList()
+        // Fetch the entities after the upsert operation to get any generated IDs
+        return fetchEntitiesAfterUpsert(entities, tableName)
     }
 
     /**
@@ -174,11 +191,14 @@ class MySqlJdbcUpsertOperations(
      * @return The list of updated entities with any autogenerated fields
      */
     private fun <T : Any> fetchEntitiesAfterUpsert(entities: List<T>, tableName: String): List<T> {
+        println("[DEBUG_LOG] Fetching entities after upsert")
         val entityClass = entities.first().javaClass
         val keyFields = getKeyFields(entityClass)
+        println("[DEBUG_LOG] Key fields: $keyFields")
 
         if (keyFields.isEmpty()) {
             // If there are no key fields, we can't fetch the entities
+            println("[DEBUG_LOG] No key fields found, returning original entities")
             return entities
         }
 
@@ -186,26 +206,52 @@ class MySqlJdbcUpsertOperations(
         val rowMapper = createEntityRowMapper(entityClass)
 
         // Fetch each entity by its key fields
-        return entities.map { entity ->
-            // Build a WHERE clause for the key fields
-            val whereClause = keyFields.joinToString(" AND ") { field ->
-                field.isAccessible = true
-                val value = field.get(entity)
-                "${getColumnName(field)} = ?"
+        return entities.mapIndexed { index, entity ->
+            println("[DEBUG_LOG] Processing entity $index: $entity")
+            try {
+                // Build a WHERE clause for the key fields
+                val whereClause = keyFields.joinToString(" AND ") { field ->
+                    field.isAccessible = true
+                    val value = field.get(entity)
+                    println("[DEBUG_LOG] Key field ${field.name} value: $value")
+                    "${getColumnName(field)} = ?"
+                }
+
+                // Extract the key values
+                val keyValues = keyFields.map { field ->
+                    field.isAccessible = true
+                    val value = field.get(entity)
+                    println("[DEBUG_LOG] Key value for ${field.name}: $value")
+                    value
+                }.toTypedArray()
+
+                // Execute the query
+                val sql = "SELECT * FROM $tableName WHERE $whereClause"
+                println("[DEBUG_LOG] Executing SQL: $sql with values: ${keyValues.joinToString()}")
+
+                val result = try {
+                    jdbcTemplate.query(sql, rowMapper, *keyValues)
+                } catch (e: Exception) {
+                    println("[DEBUG_LOG] Error executing query: ${e.message}")
+                    e.printStackTrace()
+                    emptyList()
+                }
+
+                println("[DEBUG_LOG] Query result size: ${result.size}")
+
+                // Return the fetched entity or the original if not found
+                if (result.isNotEmpty()) {
+                    println("[DEBUG_LOG] Returning fetched entity: ${result[0]}")
+                    result[0]
+                } else {
+                    println("[DEBUG_LOG] No entity found, returning original: $entity")
+                    entity
+                }
+            } catch (e: Exception) {
+                println("[DEBUG_LOG] Error fetching entity: ${e.message}")
+                e.printStackTrace()
+                entity
             }
-
-            // Extract the key values
-            val keyValues = keyFields.map { field ->
-                field.isAccessible = true
-                field.get(entity)
-            }.toTypedArray()
-
-            // Execute the query
-            val sql = "SELECT * FROM $tableName WHERE $whereClause"
-            val result = jdbcTemplate.query(sql, rowMapper, *keyValues)
-
-            // Return the fetched entity or the original if not found
-            if (result.isNotEmpty()) result[0] else entity
         }
     }
 
@@ -229,17 +275,41 @@ class MySqlJdbcUpsertOperations(
                 val columnName = getColumnName(field)
 
                 try {
-                    // Get the value from the result set
-                    val value = rs.getObject(columnName)
+                    // Check if the column exists in the result set
+                    try {
+                        rs.findColumn(columnName)
+                    } catch (e: Exception) {
+                        // Column doesn't exist, skip it
+                        continue
+                    }
 
-                    // Set the field value if not null
-                    if (value != null) {
+                    // Check if the value is NULL in the database
+                    val isNull = rs.wasNull() || rs.getObject(columnName) == null
+
+                    if (isNull) {
+                        // If the value is NULL in the database, set the field to null
+                        field.set(entity, null)
+                    } else {
+                        // Get the value from the result set
+                        val value = rs.getObject(columnName)
+
+                        // Convert empty strings to null for String fields if they're nullable
+                        if (value is String && value.isEmpty() && field.type == String::class.java) {
+                            // Check if the field is nullable
+                            val isNullable = field.type.isPrimitive.not() && field.type != String::class.java
+                            if (isNullable) {
+                                field.set(entity, null)
+                                continue
+                            }
+                        }
+
                         // Convert the value to the field type if necessary
                         val convertedValue = convertToFieldType(value, field)
                         field.set(entity, convertedValue)
                     }
                 } catch (e: Exception) {
-                    // Ignore if the column doesn't exist in the result set
+                    println("[DEBUG_LOG] Error setting field ${field.name}: ${e.message}")
+                    // Ignore if there's an error setting the field
                 }
             }
 
@@ -259,10 +329,12 @@ class MySqlJdbcUpsertOperations(
         return when {
             field.type == Int::class.java && value is Number -> value.toInt()
             field.type == Long::class.java && value is Number -> value.toLong()
+            field.type == Long::class.javaObjectType && value is Number -> value.toLong()
             field.type == Double::class.java && value is Number -> value.toDouble()
             field.type == Float::class.java && value is Number -> value.toFloat()
             field.type == Boolean::class.java && value is Boolean -> value
             field.type == String::class.java && value is String -> value
+            field.type == java.math.BigInteger::class.java && value is Number -> java.math.BigInteger.valueOf(value.toLong())
             else -> value // Return as is for other types
         }
     }

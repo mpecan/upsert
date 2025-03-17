@@ -3,6 +3,7 @@ package si.pecan.upsert.repository
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
+import org.springframework.jdbc.support.GeneratedKeyHolder
 import si.pecan.upsert.dialect.PostgreSqlUpsertDialect
 import si.pecan.upsert.dialect.UpsertDialect
 import java.lang.reflect.Field
@@ -99,14 +100,13 @@ class PostgreSqlJdbcUpsertOperations(
     }
 
     /**
-     * Execute the upsert operation and return the original entities.
-     * According to the issue description, we only want to support generated keys,
-     * not returning the entire entity.
+     * Execute the upsert operation and fetch the entities after the upsert.
+     * This is needed to get any generated IDs.
      *
      * @param entities The list of entities to upsert
      * @param sql The SQL query to execute
      * @param <T> The entity type
-     * @return The list of original entities
+     * @return The list of updated entities with any generated IDs
      */
     private fun <T : Any> executeUpsertAndReturnEntities(entities: List<T>, sql: String): List<T> {
         // Create parameter sources for each entity
@@ -117,13 +117,110 @@ class PostgreSqlJdbcUpsertOperations(
         // Create a NamedParameterJdbcTemplate
         val namedJdbcTemplate = NamedParameterJdbcTemplate(jdbcTemplate)
 
-        // Execute the query for each entity
-        for (paramSource in paramSources) {
-            namedJdbcTemplate.update(sql, paramSource)
+        // Get the entity class
+        val entityClass = entities.first().javaClass
+
+        // Get the ID field from the entity class
+        val idField = getKeyFields(entityClass).firstOrNull()
+
+        // Execute the query for each entity and update with generated keys
+        entities.forEachIndexed { index, entity ->
+            if (index < paramSources.size) {
+                val keyHolder = GeneratedKeyHolder()
+                namedJdbcTemplate.update(sql, paramSources[index], keyHolder)
+
+                // Update entity with generated key if available
+                if (idField != null && keyHolder.keyList.isNotEmpty()) {
+                    // Check if the entity already has an ID
+                    idField.isAccessible = true
+                    val existingId = idField.get(entity)
+                    println("[DEBUG_LOG] Entity $index existing ID: $existingId")
+
+                    // Only set the generated key if the entity doesn't already have an ID
+                    if (existingId == null) {
+                        val keys = keyHolder.keyList[0]
+                        println("[DEBUG_LOG] Keys for entity $index: $keys")
+
+                        // Try different key names that might be used by the database
+                        val possibleKeyNames = listOf("GENERATED_KEY", "GENERATED_KEYS", "id", "ID")
+                        var generatedKey: Any? = null
+
+                        for (keyName in possibleKeyNames) {
+                            generatedKey = keys[keyName]
+                            if (generatedKey != null) {
+                                println("[DEBUG_LOG] Found generated key with name '$keyName': $generatedKey (${generatedKey.javaClass})")
+                                break
+                            }
+                        }
+
+                        if (generatedKey != null) {
+                            try {
+                                // Convert the key to the appropriate type and set it on the entity
+                                val convertedKey = convertToFieldType(generatedKey, idField)
+                                println("[DEBUG_LOG] Converted key: $convertedKey (${convertedKey.javaClass})")
+                                idField.set(entity, convertedKey)
+                                println("[DEBUG_LOG] Set ID field to: ${idField.get(entity)}")
+                            } catch (e: Exception) {
+                                println("[DEBUG_LOG] Error setting ID field: ${e.message}")
+                                e.printStackTrace()
+                            }
+                        } else {
+                            println("[DEBUG_LOG] No generated key found in keys: $keys")
+                        }
+                    } else {
+                        println("[DEBUG_LOG] Entity $index already has ID: $existingId, not setting generated key")
+                    }
+                }
+            }
         }
 
-        // Simply return the original entities
-        return entities
+        // Fetch the entities after the upsert operation to get any generated IDs
+        return if (tableName != null) fetchEntitiesAfterUpsert(entities, tableName!!) else entities
+    }
+
+    /**
+     * Fetch the entities after the upsert operation.
+     * This is needed to get any generated IDs.
+     *
+     * @param entities The list of entities that were upserted
+     * @param tableName The table name
+     * @param <T> The entity type
+     * @return The list of updated entities with any autogenerated fields
+     */
+    private fun <T : Any> fetchEntitiesAfterUpsert(entities: List<T>, tableName: String): List<T> {
+        val entityClass = entities.first().javaClass
+        val keyFields = getKeyFields(entityClass)
+
+        if (keyFields.isEmpty()) {
+            // If there are no key fields, we can't fetch the entities
+            return entities
+        }
+
+        // Create a row mapper for the entity class
+        val rowMapper = createEntityRowMapper(entityClass)
+
+        // Fetch each entity by its key fields
+        return entities.map { entity ->
+            // Build a WHERE clause for the key fields
+            val whereClause = keyFields.joinToString(" AND ") { field ->
+                field.isAccessible = true
+                val value = field.get(entity)
+                "${getColumnName(field)} = ?"
+            }
+
+            // Extract the key values
+            val keyValues = keyFields.map { field ->
+                field.isAccessible = true
+                field.get(entity)
+            }.toTypedArray()
+
+            // Execute the query
+            val sql = "SELECT * FROM $tableName WHERE $whereClause"
+            val result = jdbcTemplate.query(sql, rowMapper, *keyValues)
+
+            // Return the fetched entity or the original if not found
+            if (result.isNotEmpty()) result[0] else entity
+        }
     }
 
     /**
@@ -146,17 +243,41 @@ class PostgreSqlJdbcUpsertOperations(
                 val columnName = getColumnName(field)
 
                 try {
-                    // Get the value from the result set
-                    val value = rs.getObject(columnName)
+                    // Check if the column exists in the result set
+                    try {
+                        rs.findColumn(columnName)
+                    } catch (e: Exception) {
+                        // Column doesn't exist, skip it
+                        continue
+                    }
 
-                    // Set the field value if not null
-                    if (value != null) {
+                    // Check if the value is NULL in the database
+                    val isNull = rs.wasNull() || rs.getObject(columnName) == null
+
+                    if (isNull) {
+                        // If the value is NULL in the database, set the field to null
+                        field.set(entity, null)
+                    } else {
+                        // Get the value from the result set
+                        val value = rs.getObject(columnName)
+
+                        // Convert empty strings to null for String fields if they're nullable
+                        if (value is String && value.isEmpty() && field.type == String::class.java) {
+                            // Check if the field is nullable
+                            val isNullable = field.type.isPrimitive.not() && field.type != String::class.java
+                            if (isNullable) {
+                                field.set(entity, null)
+                                continue
+                            }
+                        }
+
                         // Convert the value to the field type if necessary
                         val convertedValue = convertToFieldType(value, field)
                         field.set(entity, convertedValue)
                     }
                 } catch (e: Exception) {
-                    // Ignore if the column doesn't exist in the result set
+                    println("[DEBUG_LOG] Error setting field ${field.name}: ${e.message}")
+                    // Ignore if there's an error setting the field
                 }
             }
 
@@ -176,10 +297,12 @@ class PostgreSqlJdbcUpsertOperations(
         return when {
             field.type == Int::class.java && value is Number -> value.toInt()
             field.type == Long::class.java && value is Number -> value.toLong()
+            field.type == Long::class.javaObjectType && value is Number -> value.toLong()
             field.type == Double::class.java && value is Number -> value.toDouble()
             field.type == Float::class.java && value is Number -> value.toFloat()
             field.type == Boolean::class.java && value is Boolean -> value
             field.type == String::class.java && value is String -> value
+            field.type == java.math.BigInteger::class.java && value is Number -> java.math.BigInteger.valueOf(value.toLong())
             else -> value // Return as is for other types
         }
     }

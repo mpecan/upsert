@@ -2,9 +2,7 @@ package si.pecan.upsert.processor
 
 import si.pecan.upsert.dialect.ColumnInfo
 import si.pecan.upsert.dialect.UpsertDialect
-import javax.persistence.Column
-import javax.persistence.EmbeddedId
-import javax.persistence.Id
+import javax.persistence.*
 
 /**
  * Processor for handling JPA entities and generating the appropriate SQL for upsert operations.
@@ -47,6 +45,8 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
         val cacheKey = Triple(entityClass, tableName, batchSize)
         return sqlCache.getOrPut(cacheKey) {
             // Get the key and value columns from the entity class (these are also cached)
+            val uniqueConstraints =
+                entityClass.getAnnotation(Table::class.java)?.uniqueConstraints ?: emptyArray()
             val keyColumns = getKeyColumns(entityClass)
             val valueColumns = getValueColumns(entityClass)
 
@@ -58,8 +58,32 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
                 throw IllegalArgumentException("No value fields found in ${entityClass.name}. Ensure there are non-key fields in the entity.")
             }
 
+            // Filter out the generated key columns
+            val nonGeneratedKeyColums = keyColumns.filter { !it.generated }
+            val onFields = if (nonGeneratedKeyColums.isEmpty()) {
+                if (uniqueConstraints.isEmpty()) {
+                    throw IllegalArgumentException("No non-generated key fields found in ${entityClass.name}. Use @Id or @EmbeddedId annotations to mark key fields.")
+                } else {
+                    // Use the unique constraints as the ON fields
+                    (keyColumns + valueColumns).mapNotNull { column->
+                        if(uniqueConstraints.any { it.columnNames.contains(column.name)  }) {
+                            column
+                        } else {
+                            null
+                        }
+                    }
+                }
+            } else {
+                nonGeneratedKeyColums
+            }
+
             // Generate the SQL using the regular batch method
-            dialect.generateBatchUpsertSql(tableName, keyColumns, valueColumns, batchSize)
+            dialect.generateBatchUpsertSql(
+                tableName,
+                onFields,
+                valueColumns.filter { !onFields.contains(it) },
+                batchSize
+            )
         }
     }
 
@@ -84,10 +108,26 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
         ignoreAllFields: Boolean
     ): String {
         // Check the cache first
-        val cacheKey = CustomSqlCacheKey(entityClass, tableName, batchSize, onFields, ignoredFields, ignoreAllFields)
+        val cacheKey = CustomSqlCacheKey(
+            entityClass,
+            tableName,
+            batchSize,
+            onFields,
+            ignoredFields,
+            ignoreAllFields
+        )
         return customSqlCache.getOrPut(cacheKey) {
+            val uniqueConstraints =
+                entityClass.getAnnotation(Table::class.java)?.uniqueConstraints ?: emptyArray()
+
             // Get the key columns based on the specified fields
-            val keyColumns = if(onFields.isNotEmpty()) {
+            val keyColumns = if (onFields.isNotEmpty()) {
+                if (uniqueConstraints.isNotEmpty()){
+                    // Validate that the specified ON fields are unique constraints
+                        if (uniqueConstraints.none { constraint -> constraint.columnNames.all { column -> onFields.contains(column) } }) {
+                            throw IllegalArgumentException("Fields $onFields is are not part of a unique constraint in ${entityClass.name}")
+                        }
+                }
                 getKeyColumnsByName(entityClass, onFields)
             } else {
                 getKeyColumns(entityClass)
@@ -98,7 +138,11 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
             val valueColumns = if (ignoreAllFields) {
                 emptyList()
             } else {
-                getValueColumnsExcluding(entityClass, keyColumns.map { it.fieldName }, ignoredFields)
+                getValueColumnsExcluding(
+                    entityClass,
+                    keyColumns.map { it.fieldName },
+                    ignoredFields
+                )
             }
 
             // Check if we have at least one key column
@@ -107,7 +151,12 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
             }
 
             // Generate the SQL using the regular batch method
-            dialect.generateBatchUpsertSql(tableName, keyColumns, valueColumns, batchSize)
+            dialect.generateBatchUpsertSql(
+                tableName,
+                keyColumns,
+                valueColumns,
+                batchSize
+            )
         }
     }
 
@@ -136,7 +185,8 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
                         // Use the field name as the column name
                         field.name
                     }
-                    ColumnInfo(name, field.name)
+                    val generated = field.isAnnotationPresent(GeneratedValue::class.java)
+                    ColumnInfo(name, field.name, generated)
                 }
         }
     }
@@ -148,7 +198,10 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
      * @param fieldNames The field names to use as keys
      * @return The list of column names
      */
-    private fun getKeyColumnsByName(entityClass: Class<*>, fieldNames: List<String>): List<ColumnInfo> {
+    private fun getKeyColumnsByName(
+        entityClass: Class<*>,
+        fieldNames: List<String>
+    ): List<ColumnInfo> {
         // Convert field names to lowercase for case-insensitive comparison
         val lowerFieldNames = fieldNames.map { it.lowercase() }
 
@@ -241,8 +294,8 @@ class UpsertProcessor(private val dialect: UpsertDialect) {
             .filter { field ->
                 // Exclude key fields
                 !keyPropertyNames.contains(field.name) &&
-                // Exclude ignored fields
-                !lowerIgnoredFields.contains(getColumnName(field).lowercase())
+                        // Exclude ignored fields
+                        !lowerIgnoredFields.contains(getColumnName(field).lowercase())
             }
             .map { field ->
                 // Create a ColumnInfo for the field

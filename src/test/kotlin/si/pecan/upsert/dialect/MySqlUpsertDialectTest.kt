@@ -21,7 +21,7 @@ class MySqlUpsertDialectTest {
         val sql = dialect.generateBatchUpsertSql(tableName, keyColumns, valueColumns, 1)
 
         // Then
-        val expectedSql = "INSERT INTO test_table (id, name, description, active) VALUES (?, ?, ?, ?) " +
+        val expectedSql = "INSERT INTO test_table (id, name, description, active) VALUES (:id_1, :name_1, :description_1, :active_1) " +
                 "ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), active = VALUES(active)"
         assertEquals(expectedSql, sql)
     }
@@ -37,7 +37,7 @@ class MySqlUpsertDialectTest {
         val sql = dialect.generateBatchUpsertSql(tableName, keyColumns, valueColumns, 1)
 
         // Then
-        val expectedSql = "INSERT INTO test_table (id, code, name, description, active) VALUES (?, ?, ?, ?, ?) " +
+        val expectedSql = "INSERT INTO test_table (id, code, name, description, active) VALUES (:id_1, :code_1, :name_1, :description_1, :active_1) " +
                 "ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), active = VALUES(active)"
         assertEquals(expectedSql, sql)
     }

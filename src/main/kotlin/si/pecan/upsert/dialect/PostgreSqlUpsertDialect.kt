@@ -22,16 +22,17 @@ class PostgreSqlUpsertDialect : UpsertDialect {
         valueColumns: List<ColumnInfo>,
         batchSize: Int
     ): String {
-        val allColumns = keyColumns + valueColumns
+        val usableKeyColumns = keyColumns.filter { keyColumn -> !keyColumn.generated }
+        val allColumns = (usableKeyColumns + valueColumns).toSet()
 
         val insertClause = "INSERT INTO $tableName (${
             allColumns.map { it.name }.joinToString(", ")
         }) VALUES (${allColumns.map { column -> ":${column.fieldName}" }.joinToString(", ")})"
 
         val onConflictClause =
-            "ON CONFLICT (${keyColumns.map { it.name }.joinToString(", ")}) DO UPDATE SET"
+            "ON CONFLICT (${usableKeyColumns.map { it.name }.joinToString(", ")}) DO UPDATE SET"
 
-        val updateClause = valueColumns.map { it.name }.joinToString(", ") { "$it = EXCLUDED.$it" }
+        val updateClause = valueColumns.filter { value ->  usableKeyColumns.none { key -> value.name == key.name } }.map { it.name }.joinToString(", ") { "$it = EXCLUDED.$it" }
 
         return "$insertClause $onConflictClause $updateClause"
     }

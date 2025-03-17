@@ -1,5 +1,7 @@
 package si.pecan.upsert.dialect
 
+import javax.persistence.UniqueConstraint
+
 /**
  * Interface for database-specific upsert SQL generation.
  * Different databases have different syntax for upsert operations,

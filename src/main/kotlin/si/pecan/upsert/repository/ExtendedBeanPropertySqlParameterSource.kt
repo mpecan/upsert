@@ -19,7 +19,7 @@ import javax.persistence.AttributeConverter
  * - JPA custom converters (@Convert annotation)
  * - Fields that should be serialized as JSON
  */
-class ExtendedBeanPropertySqlParameterSource(bean: Any) : BeanPropertySqlParameterSource(bean) {
+open class ExtendedBeanPropertySqlParameterSource(bean: Any) : BeanPropertySqlParameterSource(bean) {
 
     // The bean being wrapped
     private val beanInstance = bean
