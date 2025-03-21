@@ -7,7 +7,7 @@ plugins {
     id("signing")
 }
 
-group = "si.pecan"
+group = "io.github.mpecan"
 version = project.property("version").toString()
 
 java {

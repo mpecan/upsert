@@ -173,7 +173,7 @@ This library is available on Maven Central. You can add it to your project using
 
 ```kotlin
 dependencies {
-    implementation("si.pecan:upsert:0.0.1")
+   implementation("io.github.mpecan:upsert:0.0.1")
 }
 ```
 
@@ -181,7 +181,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'si.pecan:upsert:0.0.1'
+    implementation 'io.github.mpecan:upsert:0.0.1'
 }
 ```
 
@@ -190,7 +190,7 @@ dependencies {
 ```xml
 
 <dependency>
-  <groupId>si.pecan</groupId>
+  <groupId>io.github.mpecan</groupId>
   <artifactId>upsert</artifactId>
   <version>0.0.1</version>
 </dependency>
@@ -310,7 +310,7 @@ repositories {
 }
 
 dependencies {
-    implementation("si.pecan:upsert:0.0.1-SNAPSHOT")
+   implementation("io.github.mpecan:upsert:0.0.1-SNAPSHOT")
 }
 ```
 
