@@ -5,7 +5,7 @@ plugins {
     kotlin("plugin.spring") version "1.9.25"
     id("org.springframework.boot") version "3.4.2"
     id("io.spring.dependency-management") version "1.1.7"
-    id("maven-publish")
+    id("java-library")
     id("signing")
     id("com.vanniktech.maven.publish") version "0.31.0-rc2"
 }
@@ -90,7 +90,7 @@ tasks.getByName<Jar>("jar") {
 }
 mavenPublishing {
     coordinates("io.github.mpecan", "upsert", project.property("version").toString())
-    publishToMavenCentral(SonatypeHost.S01)
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
     signAllPublications()
     pom {
         name.set("Spring Data JPA Upsert")
