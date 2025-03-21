@@ -37,6 +37,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Cache Gradle Wrapper separately
+      - name: Cache Gradle Wrapper
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-wrapper-
+
+      # Set up JDK with Gradle cache
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -44,30 +54,51 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      # Cache Gradle dependencies
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/jdks
+          key: ${{ runner.os }}-gradle-caches-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-caches-
+
+      # Cache TestContainers images
+      - name: Cache TestContainers images
+        uses: actions/cache@v4
+        with:
+          path: ~/.testcontainers
+          key: ${{ runner.os }}-testcontainers-${{ hashFiles('**/build.gradle.kts') }}
+          restore-keys: |
+            ${{ runner.os }}-testcontainers-
+
+      # Cache Maven local repository
+      - name: Cache Maven local repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build --build-cache
 
       - name: Test
-        run: ./gradlew test
-
-      # Set up GPG for signing
-      - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@v6
-        with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+        run: ./gradlew test --build-cache
 
       # Publish to Maven Central SNAPSHOT repository
       - name: Publish to Maven Central SNAPSHOT repository
         env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-          SIGNING_KEY_ID: ${{ secrets.GPG_KEY_ID }}
-          SIGNING_PASSWORD: ${{ secrets.GPG_PASSPHRASE }}
+          ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.OSSRH_USERNAME }}
+          ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.OSSRH_PASSWORD }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyId: ${{ secrets.GPG_KEY_ID }}
+          ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSPHRASE }}
+          ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          # Temporarily modify the repository URL to point to the SNAPSHOT repository
-          sed -i 's|https://central.sonatype.com/repository/maven/|https://central.sonatype.com/repository/maven-snapshots/|' build.gradle.kts
-          ./gradlew publish
+          ./gradlew publishAllPublicationsToMavenCentralRepository
