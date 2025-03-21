@@ -3,7 +3,7 @@ name: Release Please
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   release-please:
@@ -13,8 +13,6 @@ jobs:
         id: release
         with:
           release-type: java-kotlin
-          package-name: si.pecan.upsert
-          bump-minor-pre-major: true
           
       # The following steps run only if a release was created
       - uses: actions/checkout@v4
