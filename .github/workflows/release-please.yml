@@ -1,0 +1,46 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/release-please-action@v4
+        id: release
+        with:
+          release-type: java-kotlin
+          package-name: si.pecan.upsert
+          bump-minor-pre-major: true
+          
+      # The following steps run only if a release was created
+      - uses: actions/checkout@v4
+        if: ${{ steps.release.outputs.release_created }}
+        
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+      
+      - name: Grant execute permission for gradlew
+        if: ${{ steps.release.outputs.release_created }}
+        run: chmod +x gradlew
+      
+      - name: Build with Gradle
+        if: ${{ steps.release.outputs.release_created }}
+        run: ./gradlew build
+      
+      - name: Test
+        if: ${{ steps.release.outputs.release_created }}
+        run: ./gradlew test
+      
+      # This is a placeholder for future Maven Central publishing
+      # - name: Publish to Maven Central
+      #   if: ${{ steps.release.outputs.release_created }}
+      #   run: ./gradlew publish

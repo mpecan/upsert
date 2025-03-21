@@ -3,6 +3,7 @@ plugins {
     kotlin("plugin.spring") version "1.9.25"
     id("org.springframework.boot") version "3.4.2"
     id("io.spring.dependency-management") version "1.1.7"
+    id("maven-publish")
 }
 
 group = "si.pecan"
@@ -60,4 +61,56 @@ tasks.withType<Test> {
     systemProperty("spring.datasource.hikari.idle-timeout", "2000")
     systemProperty("spring.datasource.hikari.max-lifetime", "5000")
     systemProperty("spring.datasource.hikari.shutdown-timeout", "1000")
+}
+
+// Create a source jar for publishing
+tasks.register<Jar>("sourceJar") {
+    from(sourceSets.main.get().allSource)
+    archiveClassifier.set("sources")
+}
+
+// Disable Spring Boot's executable jar
+tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+    enabled = false
+}
+
+// Enable jar task to create a plain jar
+tasks.getByName<Jar>("jar") {
+    enabled = true
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+            
+            artifact(tasks["sourceJar"])
+            
+            pom {
+                name.set("Spring Data JPA Upsert")
+                description.set("A Spring Data JPA extension providing upsert operations")
+                url.set("https://github.com/mpecan/upsert")
+                
+                licenses {
+                    license {
+                        name.set("MIT License")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id.set("mpecan")
+                        name.set("Matjaž Pečan")
+                    }
+                }
+                
+                scm {
+                    connection.set("scm:git:git://github.com/mpecan/upsert.git")
+                    developerConnection.set("scm:git:ssh://github.com/mpecan/upsert.git")
+                    url.set("https://github.com/mpecan/upsert")
+                }
+            }
+        }
+    }
 }
