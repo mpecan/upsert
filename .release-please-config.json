@@ -1,16 +1,16 @@
 {
   "packages": {
     ".": {
-      "release-type": "java-kotlin",
-      "package-name": "si.pecan.upsert",
-      "changelog-path": "CHANGELOG.md",
+      "release-type": "java",
       "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "draft": false,
+      "prerelease": false,
       "versioning": "default",
       "extra-files": [
         {
-          "type": "json",
-          "path": "build.gradle.kts",
-          "jsonpath": "$.version"
+          "type": "generic",
+          "path": "gradle.properties"
         }
       ]
     }
