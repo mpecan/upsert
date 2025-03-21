@@ -1,13 +1,8 @@
 package si.pecan.upsert.repository
 
-import jakarta.persistence.Column
-import jakarta.persistence.EmbeddedId
-import jakarta.persistence.Id
-import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import si.pecan.upsert.dialect.UpsertDialect
 import si.pecan.upsert.model.UpsertModel
-import java.lang.reflect.Field
 
 /**
  * Abstract base class for JDBC-based upsert operations.

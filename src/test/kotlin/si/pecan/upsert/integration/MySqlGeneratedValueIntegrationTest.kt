@@ -51,9 +51,6 @@ class MySqlGeneratedValueIntegrationTest {
     @Autowired
     private lateinit var jpaTestEntityWithGeneratedIdRepository: JpaTestEntityWithGeneratedIdRepository
 
-    @Autowired
-    private lateinit var jdbcTemplate: JdbcTemplate
-
     @BeforeEach
     fun setUp() {
         // The table will be created by Hibernate based on the entity class

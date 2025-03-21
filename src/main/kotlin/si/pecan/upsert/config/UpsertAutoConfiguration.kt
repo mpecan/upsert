@@ -1,17 +1,12 @@
 package si.pecan.upsert.config
 
 import org.springframework.boot.autoconfigure.AutoConfiguration
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import si.pecan.upsert.dialect.UpsertDialect
 import si.pecan.upsert.dialect.UpsertDialectFactory
-import si.pecan.upsert.repository.JdbcUpsertOperations
-import si.pecan.upsert.repository.UpsertOperations
 import javax.sql.DataSource
 
 /**

@@ -181,17 +181,4 @@ open class ExtendedBeanPropertySqlParameterSource(bean: Any) : BeanPropertySqlPa
             else -> value
         }
     }
-
-    companion object {
-        /**
-         * Create a list of parameter sources from a list of beans.
-         * This is useful for batch operations.
-         *
-         * @param beans The list of beans
-         * @return The list of parameter sources
-         */
-        fun createBatch(beans: List<Any>): List<ExtendedBeanPropertySqlParameterSource> {
-            return beans.map { ExtendedBeanPropertySqlParameterSource(it) }
-        }
-    }
 }

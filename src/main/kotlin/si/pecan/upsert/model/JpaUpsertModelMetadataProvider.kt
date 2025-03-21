@@ -1,9 +1,7 @@
 package si.pecan.upsert.model
 
-import jakarta.annotation.Generated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.PersistenceUnitUtil
-import jakarta.persistence.UniqueConstraint
 import jakarta.persistence.metamodel.Metamodel
 import org.springframework.data.jpa.repository.support.JpaEntityInformation
 import org.springframework.data.jpa.repository.support.JpaMetamodelEntityInformation

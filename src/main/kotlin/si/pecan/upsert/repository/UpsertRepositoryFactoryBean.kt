@@ -1,5 +1,7 @@
 package si.pecan.upsert.repository
 
+import jakarta.persistence.EntityManager
+import jakarta.persistence.EntityManagerFactory
 import org.springframework.context.ApplicationContext
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactory
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactoryBean
@@ -9,17 +11,13 @@ import org.springframework.data.repository.core.support.RepositoryComposition
 import org.springframework.data.repository.core.support.RepositoryFactorySupport
 import org.springframework.data.repository.core.support.RepositoryFragment
 import org.springframework.data.repository.query.QueryLookupStrategy
-import java.io.Serializable
-import java.util.Optional
-import jakarta.persistence.EntityManager
-import jakarta.persistence.EntityManagerFactory
 import org.springframework.data.repository.query.ValueExpressionDelegate
-import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import si.pecan.upsert.dialect.UpsertDialectFactory
 import si.pecan.upsert.model.JpaUpsertModelMetadataProvider
 import si.pecan.upsert.model.UpsertModel
-import javax.naming.Name
+import java.io.Serializable
+import java.util.*
 import javax.sql.DataSource
 
 /**
