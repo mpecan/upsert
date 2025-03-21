@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/mpecan/upsert/compare/v1.0.0...v1.0.1) (2025-03-21)
+
+
+### Bug Fixes
+
+* fix release process ([#21](https://github.com/mpecan/upsert/issues/21)) ([92ee1d3](https://github.com/mpecan/upsert/commit/92ee1d333807fb7c18398001de704f71dd0b7d86))
+
 ## 1.0.0 (2025-03-21)
 
 
