@@ -9,26 +9,56 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
+      # Cache Gradle Wrapper separately
+    - name: Cache Gradle Wrapper
+      uses: actions/cache@v4
+      with:
+        path: ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('**/gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-wrapper-
+
+      # Set up JDK with Gradle cache
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
         cache: gradle
-    
+
+      # Cache Gradle dependencies
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/jdks
+        key: ${{ runner.os }}-gradle-caches-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-caches-
+
+      # Cache TestContainers images
+    - name: Cache TestContainers images
+      uses: actions/cache@v4
+      with:
+        path: ~/.testcontainers
+        key: ${{ runner.os }}-testcontainers-${{ hashFiles('**/build.gradle.kts') }}
+        restore-keys: |
+          ${{ runner.os }}-testcontainers-
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-    
+
     - name: Build with Gradle
-      run: ./gradlew build
-    
+      run: ./gradlew build --build-cache
+
     - name: Test
-      run: ./gradlew test
-    
+      run: ./gradlew test --build-cache
+
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4
