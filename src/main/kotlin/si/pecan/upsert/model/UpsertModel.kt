@@ -9,7 +9,6 @@ import si.pecan.upsert.dialect.ColumnInfo
 class UpsertModel(
     private val metadataProvider: UpsertModelMetadataProvider
 ) {
-    val entityClass: Class<out Any> = metadataProvider.getEntityClass()
 
     /**
      * Validate the upsert query.
@@ -119,10 +118,10 @@ class UpsertModel(
 
     /**
      * Create an UpsertInstance.
-     * @param tableName The table name
      * @param onColumns The columns to use for the ON clause
      * @param values The values to upsert
-     * @param updateColumns The columns to update on conflict
+     * @param ignoreColumns The columns to ignore during updates
+     * @param ignoreAllFields Whether to ignore all fields during updates
      * @return The UpsertInstance
      */
     fun createUpsertInstance(
@@ -142,15 +141,6 @@ class UpsertModel(
             values?.let { getValueColumns(it) } ?: getDefaultValues(),
             updateColumns ?: getDefaultUpdateColumns()
         )
-    }
-
-    /**
-     * Get the update columns for the upsert query.
-     * @param fields The fields to include in the update
-     * @return The list of update columns
-     */
-    private fun getUpdateColumns(fields: List<String>): List<ColumnInfo> {
-        return metadataProvider.getColumns().filter { it.name in fields }
     }
 
     /**
@@ -188,10 +178,6 @@ class UpsertModel(
                 values,
                 updateColumns
             )
-        }
-
-        fun getUniqueConstraints(): List<List<ColumnInfo>> {
-            return metadataProvider.getUniqueConstraints()
         }
     }
 }

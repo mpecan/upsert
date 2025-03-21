@@ -1,11 +1,10 @@
 package si.pecan.upsert.dialect
 
-import org.springframework.beans.BeanWrapperImpl
 import org.springframework.beans.PropertyAccessorFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.support.GeneratedKeyHolder
-import si.pecan.upsert.model.UpsertModel
 import si.pecan.upsert.bean.ExtendedBeanPropertySqlParameterSource
+import si.pecan.upsert.model.UpsertModel
 import java.lang.reflect.Field
 
 /**
