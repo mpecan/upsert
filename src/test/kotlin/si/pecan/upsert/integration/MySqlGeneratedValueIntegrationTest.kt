@@ -154,7 +154,7 @@ class MySqlGeneratedValueIntegrationTest {
         val updatedEntities = listOf(
             JpaTestEntityWithGeneratedId(
                 id = insertedEntities[0].id,
-                name = "Original entity 1",
+                name = "Original Entity 1",
                 description = "Updated Description 1",
                 active = false
             ),

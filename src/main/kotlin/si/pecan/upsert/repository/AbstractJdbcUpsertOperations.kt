@@ -1,13 +1,13 @@
 package si.pecan.upsert.repository
 
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.jdbc.core.RowMapper
 import si.pecan.upsert.dialect.UpsertDialect
 import si.pecan.upsert.processor.UpsertProcessor
 import java.lang.reflect.Field
-import javax.persistence.Column
-import javax.persistence.EmbeddedId
-import javax.persistence.Id
+import jakarta.persistence.Column
+import jakarta.persistence.EmbeddedId
+import jakarta.persistence.Id
+import si.pecan.upsert.model.UpsertModel
 
 /**
  * Abstract base class for JDBC-based upsert operations.
@@ -27,26 +27,16 @@ abstract class AbstractJdbcUpsertOperations(
     private val valueFieldsCache = mutableMapOf<Class<*>, List<Field>>()
 
     // Store entity class, ID class, and table name
-    protected var entityClass: Class<*>? = null
-    protected var idClass: Class<*>? = null
-    protected var tableName: String? = null
+    protected lateinit var upsertModel: UpsertModel
 
     /**
      * Initialize the operations with entity class and ID class.
      * This method should be called once at startup to prepare the operations.
      *
-     * @param entityClass The entity class
-     * @param idClass The ID class
-     * @param tableName The table name
+     * @param upsertModel The upsert model
      */
-    override fun initialize(entityClass: Class<*>, idClass: Class<*>, tableName: String) {
-        this.entityClass = entityClass
-        this.idClass = idClass
-        this.tableName = tableName
-
-        // Pre-cache key and value fields
-        getKeyFields(entityClass)
-        getValueFields(entityClass)
+    override fun initialize(upsertModel: UpsertModel) {
+        this.upsertModel = upsertModel
     }
 
     /**

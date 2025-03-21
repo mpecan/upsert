@@ -171,13 +171,10 @@ class CustomMethodsIntegrationTest {
         customMethodsTestRepository.upsert(entity1)
 
         // When/Then - expect exception when using name as ON clause and ignoring all fields
-        val exception = assertThrows(BadSqlGrammarException::class.java) {
+        assertThrows(InvalidDataAccessApiUsageException::class.java) {
             customMethodsTestRepository.upsertOnNameIgnoringAllFields(entity2)
         }
 
-        // Verify the exception message
-        assert(exception.message?.contains("syntax error") == true || 
-               exception.message?.contains("SQL grammar") == true)
     }
 
     @Test

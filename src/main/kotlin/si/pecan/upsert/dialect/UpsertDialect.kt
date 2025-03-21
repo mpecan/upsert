@@ -1,6 +1,6 @@
 package si.pecan.upsert.dialect
 
-import javax.persistence.UniqueConstraint
+import jakarta.persistence.UniqueConstraint
 
 /**
  * Interface for database-specific upsert SQL generation.
@@ -22,6 +22,7 @@ interface UpsertDialect {
         tableName: String,
         keyColumns: List<ColumnInfo>,
         valueColumns: List<ColumnInfo>,
+        updateColumns: List<ColumnInfo> = valueColumns,
         batchSize: Int
     ): String
 

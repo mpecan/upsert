@@ -1,8 +1,8 @@
 package si.pecan.upsert.entity
 
-import javax.persistence.Entity
-import javax.persistence.Id
-import javax.persistence.Table
+import jakarta.persistence.Entity
+import jakarta.persistence.Id
+import jakarta.persistence.Table
 
 /**
  * Test entity using JPA annotations for upsert operations.

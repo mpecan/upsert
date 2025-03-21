@@ -8,7 +8,6 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import si.pecan.upsert.dialect.PostgreSqlUpsertDialect
 import si.pecan.upsert.entity.JpaTestEntity
 import si.pecan.upsert.repository.JdbcUpsertOperations
 import javax.sql.DataSource

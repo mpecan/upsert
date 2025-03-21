@@ -20,19 +20,19 @@ class MySqlUpsertDialect : UpsertDialect {
         tableName: String,
         keyColumns: List<ColumnInfo>,
         valueColumns: List<ColumnInfo>,
+        updateColumns: List<ColumnInfo>,
         batchSize: Int
     ): String {
-        val allColumns = keyColumns + valueColumns
 
         // Create placeholders for all entities in the batch
         val allPlaceholders = (1..batchSize).joinToString(", ") {
-            "(${allColumns.map { column -> ":${column.name}_${it}" }.joinToString(", ")})"
+            "(${valueColumns.map { column -> ":${column.name}_${it}" }.joinToString(", ")})"
         }
 
         val insertClause =
-            "INSERT INTO $tableName (${allColumns.joinToString(", ") { it.name }}) VALUES $allPlaceholders"
+            "INSERT INTO $tableName (${valueColumns.joinToString(", ") { it.name }}) VALUES $allPlaceholders"
 
-        val updateClause = valueColumns.joinToString(", ") { "${it.name} = VALUES(${it.name})" }
+        val updateClause = updateColumns.joinToString(", ") { "${it.name} = VALUES(${it.name})" }
 
         return "$insertClause ON DUPLICATE KEY UPDATE $updateClause"
     }

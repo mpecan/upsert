@@ -7,7 +7,6 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-import si.pecan.upsert.dialect.PostgreSqlUpsertDialect
 import si.pecan.upsert.entity.JpaTestEntityWithConverter
 import si.pecan.upsert.entity.JsonData
 import si.pecan.upsert.entity.JsonDataConverter

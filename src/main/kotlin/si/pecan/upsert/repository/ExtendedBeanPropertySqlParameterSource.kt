@@ -7,8 +7,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.*
-import javax.persistence.Convert
-import javax.persistence.AttributeConverter
+import jakarta.persistence.Convert
+import jakarta.persistence.AttributeConverter
 
 /**
  * Extension of BeanPropertySqlParameterSource that supports additional types.

@@ -1,5 +1,6 @@
 package si.pecan.upsert.config
 
+import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
@@ -16,7 +17,7 @@ import javax.sql.DataSource
  * Auto-configuration for upsert functionality.
  * This class automatically configures the upsert functionality based on the libraries provided on the classpath.
  */
-@Configuration
+@AutoConfiguration
 @ConditionalOnClass(JdbcTemplate::class)
 class UpsertAutoConfiguration {
 

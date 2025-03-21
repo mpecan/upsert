@@ -4,6 +4,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import si.pecan.upsert.dialect.MySqlUpsertDialect
 import si.pecan.upsert.dialect.PostgreSqlUpsertDialect
 import si.pecan.upsert.dialect.UpsertDialect
+import si.pecan.upsert.model.UpsertModel
 
 /**
  * Factory class for creating database-specific UpsertOperations implementations.
@@ -37,8 +38,8 @@ class JdbcUpsertOperations(
      * @param idClass The ID class
      * @param tableName The table name
      */
-    override fun initialize(entityClass: Class<*>, idClass: Class<*>, tableName: String) {
-        delegate.initialize(entityClass, idClass, tableName)
+    override fun initialize(upsertModel: UpsertModel) {
+        delegate.initialize(upsertModel)
     }
 
     /**

@@ -2,8 +2,8 @@ package si.pecan.upsert.repository
 
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository
 import org.springframework.data.repository.core.EntityInformation
-import javax.persistence.EntityManager
-import javax.persistence.Table
+import jakarta.persistence.EntityManager
+import jakarta.persistence.Table
 
 /**
  * Implementation of BaseUpsertRepository.
