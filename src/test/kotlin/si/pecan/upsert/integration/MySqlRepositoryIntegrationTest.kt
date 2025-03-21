@@ -1,11 +1,11 @@
 package si.pecan.upsert.integration
 
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -21,13 +21,13 @@ import si.pecan.upsert.entity.JpaTestEntity
  */
 @SpringBootTest(classes = [TestApplication::class])
 @Testcontainers
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class MySqlRepositoryIntegrationTest {
 
     private val logger = LoggerFactory.getLogger(MySqlRepositoryIntegrationTest::class.java)
 
     companion object {
         @Container
+        @JvmStatic
         val mysqlContainer = MySQLContainer<Nothing>("mysql:8.0").apply {
             withDatabaseName("testdb")
             withUsername("test")
@@ -43,6 +43,19 @@ class MySqlRepositoryIntegrationTest {
             registry.add("spring.datasource.driver-class-name") { mysqlContainer.driverClassName }
             registry.add("spring.jpa.database-platform") { "org.hibernate.dialect.MySQL8Dialect" }
             registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
+
+            // Configure HikariCP to properly close connections
+            registry.add("spring.datasource.hikari.maximum-pool-size") { "10" }
+            registry.add("spring.datasource.hikari.minimum-idle") { "2" }
+            registry.add("spring.datasource.hikari.connection-timeout") { "30000" }
+            registry.add("spring.datasource.hikari.idle-timeout") { "10000" }
+            registry.add("spring.datasource.hikari.max-lifetime") { "30000" }
+        }
+
+        @AfterAll
+        @JvmStatic
+        fun tearDown() {
+            mysqlContainer.stop()
         }
     }
 

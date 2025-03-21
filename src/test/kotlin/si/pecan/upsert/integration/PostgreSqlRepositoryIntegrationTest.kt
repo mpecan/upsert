@@ -1,5 +1,6 @@
 package si.pecan.upsert.integration
 
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -38,13 +39,13 @@ class TestApplication {
  */
 @SpringBootTest(classes = [TestApplication::class])
 @Testcontainers
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class PostgreSqlRepositoryIntegrationTest {
 
     private val logger = LoggerFactory.getLogger(PostgreSqlRepositoryIntegrationTest::class.java)
 
     companion object {
         @Container
+        @JvmStatic
         val postgresContainer = PostgreSQLContainer<Nothing>("postgres:14-alpine").apply {
             withDatabaseName("testdb")
             withUsername("test")
@@ -60,6 +61,19 @@ class PostgreSqlRepositoryIntegrationTest {
             registry.add("spring.datasource.driver-class-name") { postgresContainer.driverClassName }
             registry.add("spring.jpa.database-platform") { "org.hibernate.dialect.PostgreSQLDialect" }
             registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
+
+            // Configure HikariCP to properly close connections
+            registry.add("spring.datasource.hikari.maximum-pool-size") { "10" }
+            registry.add("spring.datasource.hikari.minimum-idle") { "2" }
+            registry.add("spring.datasource.hikari.connection-timeout") { "30000" }
+            registry.add("spring.datasource.hikari.idle-timeout") { "10000" }
+            registry.add("spring.datasource.hikari.max-lifetime") { "30000" }
+        }
+
+        @AfterAll
+        @JvmStatic
+        fun tearDown() {
+            postgresContainer.stop()
         }
     }
 
