@@ -166,5 +166,32 @@ class UpsertModel(
         init {
             this@UpsertModel.validateUpsertQuery(values, onColumns, updateColumns)
         }
+
+        fun withoutValueColumns(columnsToExclude: List<ColumnInfo>):UpsertInstance {
+            return UpsertInstance(
+                tableName,
+                onColumns,
+                values.filter { it !in columnsToExclude },
+                updateColumns
+            )
+        }
+
+        fun forFirstUniqueConstraint(): UpsertInstance {
+            if(metadataProvider.getUniqueConstraints().isEmpty()) {
+                throw IllegalStateException("No unique constraints found")
+            }
+            val uniqueColumns = metadataProvider.getUniqueConstraints().first()
+            val updateColumns = updateColumns.filter { it !in uniqueColumns }
+            return UpsertInstance(
+                tableName,
+                uniqueColumns,
+                values,
+                updateColumns
+            )
+        }
+
+        fun getUniqueConstraints(): List<List<ColumnInfo>> {
+            return metadataProvider.getUniqueConstraints()
+        }
     }
 }

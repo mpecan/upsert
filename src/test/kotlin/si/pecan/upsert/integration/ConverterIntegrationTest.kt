@@ -4,13 +4,22 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
+import si.pecan.upsert.dialect.ColumnInfo
+import si.pecan.upsert.dialect.PostgreSqlUpsertDialect
 import si.pecan.upsert.entity.JpaTestEntityWithConverter
 import si.pecan.upsert.entity.JsonData
 import si.pecan.upsert.entity.JsonDataConverter
+import si.pecan.upsert.model.MockUpsertModelMetadataProvider
+import si.pecan.upsert.model.UpsertModel
 import si.pecan.upsert.repository.JdbcUpsertOperations
+import si.pecan.upsert.repository.UpsertRepository
+import si.pecan.upsert.repository.UpsertRepositoryImpl
+import java.sql.ResultSet
 import javax.sql.DataSource
 
 /**
@@ -29,7 +38,9 @@ class ConverterIntegrationTest {
 
     private lateinit var dataSource: DataSource
     private lateinit var jdbcTemplate: JdbcTemplate
-    private lateinit var upsertOperations: JdbcUpsertOperations
+    private lateinit var namedParameterJdbcTemplate: NamedParameterJdbcTemplate
+    private lateinit var repository: UpsertRepository<JpaTestEntityWithConverter, Long>
+    private val jsonDataConverter = JsonDataConverter()
 
     @BeforeEach
     fun setup() {
@@ -40,88 +51,130 @@ class ConverterIntegrationTest {
             password = postgresContainer.password
         }
 
-        // Create a JdbcTemplate
         jdbcTemplate = JdbcTemplate(dataSource)
-
-        // Create the UpsertOperations
-        upsertOperations = JdbcUpsertOperations.forPostgreSql(jdbcTemplate)
+        namedParameterJdbcTemplate = NamedParameterJdbcTemplate(jdbcTemplate)
 
         // Create the test tables
-        jdbcTemplate.execute("""
+        jdbcTemplate.execute(
+            """
             CREATE TABLE IF NOT EXISTS jpa_test_entity_with_converter (
                 id BIGINT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 json_data TEXT,
                 active BOOLEAN NOT NULL
             )
-        """)
+        """
+        )
+
+        // Clear the table before each test
+        jdbcTemplate.execute("DELETE FROM jpa_test_entity_with_converter")
+
+        // Create repository for JpaTestEntityWithConverter
+        val idColumn = ColumnInfo("id", "id", Long::class.java, 4, false)
+        val nameColumn = ColumnInfo("name", "name", String::class.java, 12, false)
+        val jsonDataColumn = ColumnInfo("json_data", "jsonData", JsonData::class.java, 12, false)
+        val activeColumn = ColumnInfo("active", "active", Boolean::class.java, 16, false)
+
+        val metadataProvider = MockUpsertModelMetadataProvider(
+            tableName = "jpa_test_entity_with_converter",
+            columns = listOf(idColumn, nameColumn, jsonDataColumn, activeColumn),
+            idColumn = idColumn,
+            entityClass = JpaTestEntityWithConverter::class.java
+        )
+
+        val upsertModel = UpsertModel(metadataProvider)
+        val dialect = PostgreSqlUpsertDialect()
+        val upsertOperations = JdbcUpsertOperations(namedParameterJdbcTemplate, dialect, upsertModel)
+        repository = UpsertRepositoryImpl(upsertOperations, upsertModel)
     }
 
     @Test
     fun `test upsert with custom converter`() {
-        // Create a test entity with JSON data
-        val jsonData = JsonData("test-key", "test-value")
-        val entity = JpaTestEntityWithConverter(1, "Test Entity", jsonData, true)
+        // Given
+        val entity = JpaTestEntityWithConverter(
+            id = 1L,
+            name = "Test Entity",
+            jsonData = JsonData("test-key", "test-value"),
+            active = true
+        )
 
-        // Debug: Print the entity
-        println("[DEBUG_LOG] Entity: $entity")
+        // When
+        val result = repository.upsert(entity)
 
-        // Debug: Print the converter output
-        val converter = JsonDataConverter()
-        val convertedValue = converter.convertToDatabaseColumn(jsonData)
-        println("[DEBUG_LOG] Converted JSON: $convertedValue")
+        // Then
+        assertEquals(1L, result.id)
+        assertEquals("Test Entity", result.name)
+        assertEquals("test-key", result.jsonData.key)
+        assertEquals("test-value", result.jsonData.value)
+        assertEquals(true, result.active)
 
-        try {
-            // Perform the upsert operation
-            val result = upsertOperations.upsert(entity, "jpa_test_entity_with_converter")
+        // Verify the data was correctly stored in the database
+        val storedEntity = jdbcTemplate.queryForObject(
+            "SELECT * FROM jpa_test_entity_with_converter WHERE id = ?",
+            entityRowMapper(),
+            1L
+        )
 
-            // Verify that one row was affected
-
-            println("[DEBUG_LOG] Query result: $result")
-            assertEquals("Test Entity", result.name)
-            assertEquals(jsonData, result.jsonData)
-            assertEquals(true, result.active)
-        } catch (e: Exception) {
-            println("[DEBUG_LOG] Error: ${e.message}")
-            e.printStackTrace()
-            throw e
-        }
+        assertEquals(1L, storedEntity?.id)
+        assertEquals("Test Entity", storedEntity?.name)
+        assertEquals("test-key", storedEntity?.jsonData?.key)
+        assertEquals("test-value", storedEntity?.jsonData?.value)
+        assertEquals(true, storedEntity?.active)
     }
 
     @Test
     fun `test upsert update with custom converter`() {
-        try {
-            // First insert an entity
-            val jsonData1 = JsonData("original-key", "original-value")
-            val entity1 = JpaTestEntityWithConverter(2, "Original Entity", jsonData1, true)
-            println("[DEBUG_LOG] First entity: $entity1")
+        // Given
+        // First insert an entity
+        val entity1 = JpaTestEntityWithConverter(
+            id = 2L,
+            name = "Original Entity",
+            jsonData = JsonData("original-key", "original-value"),
+            active = true
+        )
+        repository.upsert(entity1)
 
-            // Debug: Print the converter output
-            val converter = JsonDataConverter()
-            val convertedValue1 = converter.convertToDatabaseColumn(jsonData1)
-            println("[DEBUG_LOG] First converted JSON: $convertedValue1")
+        // Now create an updated entity with the same ID
+        val entity2 = JpaTestEntityWithConverter(
+            id = 2L,
+            name = "Updated Entity",
+            jsonData = JsonData("updated-key", "updated-value"),
+            active = false
+        )
 
-            val firstResult = upsertOperations.upsert(entity1, "jpa_test_entity_with_converter")
-            println("[DEBUG_LOG] First upsert result: $firstResult")
+        // When
+        val result = repository.upsert(entity2)
 
-            // Then update it with a new entity
-            val jsonData2 = JsonData("updated-key", "updated-value")
-            val entity2 = JpaTestEntityWithConverter(2, "Updated Entity", jsonData2, false)
-            println("[DEBUG_LOG] Second entity: $entity2")
+        // Then
+        assertEquals(2L, result.id)
+        assertEquals("Updated Entity", result.name)
+        assertEquals("updated-key", result.jsonData.key)
+        assertEquals("updated-value", result.jsonData.value)
+        assertEquals(false, result.active)
 
-            val convertedValue2 = converter.convertToDatabaseColumn(jsonData2)
-            println("[DEBUG_LOG] Second converted JSON: $convertedValue2")
+        // Verify the data was correctly updated in the database
+        val storedEntity = jdbcTemplate.queryForObject(
+            "SELECT * FROM jpa_test_entity_with_converter WHERE id = ?",
+            entityRowMapper(),
+            2L
+        )
 
-            val result = upsertOperations.upsert(entity2, "jpa_test_entity_with_converter")
+        assertEquals(2L, storedEntity?.id)
+        assertEquals("Updated Entity", storedEntity?.name)
+        assertEquals("updated-key", storedEntity?.jsonData?.key)
+        assertEquals("updated-value", storedEntity?.jsonData?.value)
+        assertEquals(false, storedEntity?.active)
+    }
 
-            println("[DEBUG_LOG] Query result: $result")
-            assertEquals("Updated Entity", result.name)
-            assertEquals(jsonData2, result.jsonData)
-            assertEquals(false, result.active)
-        } catch (e: Exception) {
-            println("[DEBUG_LOG] Error: ${e.message}")
-            e.printStackTrace()
-            throw e
+    private fun entityRowMapper(): RowMapper<JpaTestEntityWithConverter> {
+        return RowMapper { rs: ResultSet, _: Int ->
+            val id = rs.getLong("id")
+            val name = rs.getString("name")
+            val jsonDataStr = rs.getString("json_data")
+            val jsonData = jsonDataConverter.convertToEntityAttribute(jsonDataStr)
+            val active = rs.getBoolean("active")
+
+            JpaTestEntityWithConverter(id, name, jsonData!!, active)
         }
     }
 }

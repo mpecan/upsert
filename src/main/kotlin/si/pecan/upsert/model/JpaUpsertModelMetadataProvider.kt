@@ -19,23 +19,24 @@ class JpaUpsertModelMetadataProvider(
     persistenceUnitUtil: PersistenceUnitUtil,
     private val entityClass: Class<out Any>
 ) : UpsertModelMetadataProvider {
-    
+
     private val tableName: String
     private val entityMetadata = metamodel.entity(entityClass)
     private val uniqueColumns: Set<ColumnInfo>
+    private val uniqueConstraints: Set<Set<ColumnInfo>>
     private val columns: Set<ColumnInfo>
     private val idColumns: Set<ColumnInfo>?
     private val idColumn: ColumnInfo?
-    
+
     init {
         val annotations = entityClass.annotations
         val tableAnnotation =
             annotations.find { it is jakarta.persistence.Table } as jakarta.persistence.Table
         tableName = tableAnnotation.name
-        
+
         val entityInformation: JpaEntityInformation<out Any, Any> =
             JpaMetamodelEntityInformation(entityClass, metamodel, persistenceUnitUtil)
-        
+
         columns = entityMetadata.attributes.filter { it.isAssociation.not() }.map {
             val field = it.declaringType.javaType.getDeclaredField(it.name)
             val isGenerated = field.annotations.any { it is GeneratedValue }
@@ -49,7 +50,7 @@ class JpaUpsertModelMetadataProvider(
                 isGenerated
             )
         }.toSet()
-        
+
         if (entityInformation.hasCompositeId()) {
             idColumns = entityInformation.idAttributeNames.mapNotNull { idAttributeName ->
                 columns.find { it.name == idAttributeName }
@@ -61,24 +62,33 @@ class JpaUpsertModelMetadataProvider(
             }
             idColumns = null
         }
-        
-        val uniqueConstraints = entityClass.annotations.filterIsInstance<UniqueConstraint>()
-        
+
+        val uniqueConstraints = tableAnnotation.uniqueConstraints
+
         uniqueColumns =
             uniqueConstraints.flatMap { it.columnNames.toList() }.mapNotNull { columnName ->
                 columns.find { it.name == columnName }
             }.toSet()
+
+        this.uniqueConstraints = uniqueConstraints.map {
+            it.columnNames.mapNotNull { columnName ->
+                columns.find { it.name == columnName }
+            }.toSet()
+        }.toSet()
     }
-    
+
     override fun getTableName(): String = tableName
-    
+
     override fun getColumns(): List<ColumnInfo> = columns.toList()
-    
+
     override fun getIdColumns(): List<ColumnInfo>? = idColumns?.toList()
-    
+
     override fun getIdColumn(): ColumnInfo? = idColumn
-    
+
     override fun getUniqueColumns(): List<ColumnInfo> = uniqueColumns.toList()
-    
+
+    override fun getUniqueConstraints(): List<List<ColumnInfo>> =
+        uniqueConstraints.map { it.toList() }
+
     override fun getEntityClass(): Class<out Any> = entityClass
 }

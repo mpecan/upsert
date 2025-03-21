@@ -1,7 +1,5 @@
 package si.pecan.upsert.repository
 
-import java.util.*
-
 /**
  * Parser for upsert method names.
  * This class is responsible for parsing method names like "upsertAllOnAgendaIdAndTypeIgnoringUpdatedAt"

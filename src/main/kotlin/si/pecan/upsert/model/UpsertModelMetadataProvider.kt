@@ -36,6 +36,12 @@ interface UpsertModelMetadataProvider {
      * @return The list of unique columns
      */
     fun getUniqueColumns(): List<ColumnInfo>
+
+    /**
+     * Get the unique constraints for the entity.
+     * @return The list of unique constraints
+     */
+    fun getUniqueConstraints(): List<List<ColumnInfo>>
     
     /**
      * Get the entity class.

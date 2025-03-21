@@ -15,9 +15,11 @@ import jakarta.persistence.EntityManager
 import jakarta.persistence.EntityManagerFactory
 import org.springframework.data.repository.query.ValueExpressionDelegate
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import si.pecan.upsert.dialect.UpsertDialectFactory
 import si.pecan.upsert.model.JpaUpsertModelMetadataProvider
 import si.pecan.upsert.model.UpsertModel
+import javax.naming.Name
 import javax.sql.DataSource
 
 /**
@@ -32,7 +34,7 @@ class UpsertRepositoryFactoryBean<T : Repository<S, ID>, S : Any, ID : Serializa
     repositoryInterface: Class<T>,
     private val applicationContext: ApplicationContext,
     private val dataSource: DataSource,
-    private val jdbcTemplate: JdbcTemplate
+    private val jdbcTemplate: NamedParameterJdbcTemplate,
 ) : JpaRepositoryFactoryBean<T, S, ID>(repositoryInterface) {
 
     override fun createRepositoryFactory(entityManager: EntityManager): RepositoryFactorySupport {
@@ -46,7 +48,7 @@ class UpsertRepositoryFactoryBean<T : Repository<S, ID>, S : Any, ID : Serializa
         private val entityManager: EntityManager,
         applicationContext: ApplicationContext,
         dataSource: DataSource,
-        private val jdbcTemplate: JdbcTemplate
+        private val jdbcTemplate: NamedParameterJdbcTemplate
     ) : JpaRepositoryFactory(entityManager) {
 
         private val upsertDialect = UpsertDialectFactory(dataSource).getDialect()
@@ -61,8 +63,7 @@ class UpsertRepositoryFactoryBean<T : Repository<S, ID>, S : Any, ID : Serializa
                 val metadataProvider = JpaUpsertModelMetadataProvider(entityManager.metamodel, entityManagerFactory.persistenceUnitUtil, metadata.domainType)
                 val upsertModel = UpsertModel(metadataProvider)
 
-                val upsertOperations = JdbcUpsertOperations(jdbcTemplate, upsertDialect)
-                upsertOperations.initialize(upsertModel)
+                val upsertOperations = JdbcUpsertOperations(jdbcTemplate, upsertDialect, upsertModel)
                 val upsertRepositoryImpl =
                     UpsertRepositoryImpl<Any, Any>( upsertOperations, upsertModel)
                 val upsertFragment = RepositoryFragment.implemented(

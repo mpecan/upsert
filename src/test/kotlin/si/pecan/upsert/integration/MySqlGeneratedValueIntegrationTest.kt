@@ -178,9 +178,9 @@ class MySqlGeneratedValueIntegrationTest {
         assertEquals(false, results[0].active)
 
         assertEquals(insertedEntities[1].id, results[1].id)
-        assertEquals("Original Entity 2", results[1].name)
-        assertEquals("Original Description 2", results[1].description)
-        assertEquals(true, results[1].active)
+        assertEquals("Updated Entity 2", results[1].name)
+        assertEquals("Updated Description 2", results[1].description)
+        assertEquals(false, results[1].active)
 
     }
 
