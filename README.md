@@ -1,5 +1,7 @@
 # Upsert Repository
 
+![Maven Central Version](https://img.shields.io/maven-central/v/io.github.mpecan/upsert)
+
 A Spring Data JPA extension that provides upsert capabilities for repositories. This library simplifies the process of inserting or updating records in a database using Spring Data JPA.
 
 ## Full disclosure
