@@ -7,7 +7,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("java-library")
     id("signing")
-    id("com.vanniktech.maven.publish") version "0.31.0-rc2"
+    id("com.vanniktech.maven.publish") version "0.31.0"
 }
 
 group = "io.github.mpecan"
