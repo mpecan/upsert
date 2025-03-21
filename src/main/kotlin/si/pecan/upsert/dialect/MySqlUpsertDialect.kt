@@ -1,5 +1,6 @@
 package si.pecan.upsert.dialect
 
+import org.springframework.beans.PropertyAccessorFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.support.GeneratedKeyHolder
 import si.pecan.upsert.model.UpsertModel
@@ -90,7 +91,7 @@ class MySqlUpsertDialect : UpsertDialect {
             entities.forEachIndexed { index, entity ->
                 if (index < keysList.size) {
                     val keys = keysList[index]
-
+                    val beanWrapper = PropertyAccessorFactory.forDirectFieldAccess(entity)
                     for (column in generatedColumns) {
                         // Try different key names that might be used by the database
                         val possibleKeyNames = listOf("GENERATED_KEY", "GENERATED_KEYS", column.name, column.name.uppercase())
@@ -105,14 +106,11 @@ class MySqlUpsertDialect : UpsertDialect {
 
                         if (generatedKey != null) {
                             try {
-                                // Find the field in the entity class
-                                val field = entity.javaClass.getDeclaredField(column.fieldName)
-                                field.isAccessible = true
-
-                                // Only set the field if it's null
-                                if (field.get(entity) == null) {
-                                    field.set(entity, convertToFieldType(generatedKey, field))
+                                if (beanWrapper.getPropertyValue(column.fieldName) != null) {
+                                    // Skip setting the generated key if the field is already set
+                                    continue
                                 }
+                                beanWrapper.setPropertyValue(column.fieldName, generatedKey)
                             } catch (e: Exception) {
                                 // Log the error but continue processing
                                 println("[DEBUG_LOG] Error setting generated key: ${e.message}")
@@ -124,29 +122,5 @@ class MySqlUpsertDialect : UpsertDialect {
         }
 
         return entities
-    }
-
-    /**
-     * Convert a value to the field type if necessary.
-     *
-     * @param value The value to convert
-     * @param field The field to convert to
-     * @return The converted value
-     */
-    private fun convertToFieldType(value: Any, field: Field): Any {
-        // Handle common type conversions
-        return when {
-            field.type == Int::class.java && value is Number -> value.toInt()
-            field.type == Long::class.java && value is Number -> value.toLong()
-            field.type == Long::class.javaObjectType && value is Number -> value.toLong()
-            field.type == Double::class.java && value is Number -> value.toDouble()
-            field.type == Float::class.java && value is Number -> value.toFloat()
-            field.type == Boolean::class.java && value is Boolean -> value
-            field.type == String::class.java && value is String -> value
-            field.type == java.math.BigInteger::class.java && value is Number -> java.math.BigInteger.valueOf(
-                value.toLong()
-            )
-            else -> value // Return as is for other types
-        }
     }
 }
