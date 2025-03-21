@@ -2,6 +2,17 @@
 
 A Spring Data JPA extension that provides upsert capabilities for repositories. This library simplifies the process of inserting or updating records in a database using Spring Data JPA.
 
+## Full disclosure
+
+This project was built with the help of the following AI tools:
+
+- [JetBrains Junie](https://www.jetbrains.com/junie/)
+- [GitHub Copilot](https://copilot.github.com/)
+- [Claude-Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview)
+
+That said: all of the code has been reviewed and refinished by me, and I have made sure that it is
+all correct and functional.
+
 ## Features
 
 - Upsert a single entity or a list of entities
