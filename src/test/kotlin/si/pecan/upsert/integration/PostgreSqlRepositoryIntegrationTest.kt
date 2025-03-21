@@ -1,6 +1,5 @@
 package si.pecan.upsert.integration
 
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -8,7 +7,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.domain.EntityScan
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.InvalidDataAccessApiUsageException
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories
@@ -30,9 +28,7 @@ import si.pecan.upsert.repository.UpsertRepositoryFactoryBean
     basePackages = ["si.pecan.upsert.integration"],
     repositoryFactoryBeanClass = UpsertRepositoryFactoryBean::class
 )
-class TestApplication {
-
-}
+class TestApplication
 
 /**
  * Integration tests for PostgreSQL UpsertRepository implementation.
@@ -61,19 +57,6 @@ class PostgreSqlRepositoryIntegrationTest {
             registry.add("spring.datasource.driver-class-name") { postgresContainer.driverClassName }
             registry.add("spring.jpa.database-platform") { "org.hibernate.dialect.PostgreSQLDialect" }
             registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
-
-            // Configure HikariCP to properly close connections
-            registry.add("spring.datasource.hikari.maximum-pool-size") { "10" }
-            registry.add("spring.datasource.hikari.minimum-idle") { "2" }
-            registry.add("spring.datasource.hikari.connection-timeout") { "30000" }
-            registry.add("spring.datasource.hikari.idle-timeout") { "10000" }
-            registry.add("spring.datasource.hikari.max-lifetime") { "30000" }
-        }
-
-        @AfterAll
-        @JvmStatic
-        fun tearDown() {
-            postgresContainer.stop()
         }
     }
 

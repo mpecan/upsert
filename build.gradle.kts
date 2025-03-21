@@ -49,4 +49,15 @@ kotlin {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+
+    // Enable reusing TestContainers instances across test runs
+    systemProperty("testcontainers.reuse.enable", "true")
+
+    // Set lower values for faster test execution - particularly when stopping tests
+    systemProperty("spring.datasource.hikari.maximum-pool-size", "3")
+    systemProperty("spring.datasource.hikari.minimum-idle", "1")
+    systemProperty("spring.datasource.hikari.connection-timeout", "5000")
+    systemProperty("spring.datasource.hikari.idle-timeout", "2000")
+    systemProperty("spring.datasource.hikari.max-lifetime", "5000")
+    systemProperty("spring.datasource.hikari.shutdown-timeout", "1000")
 }

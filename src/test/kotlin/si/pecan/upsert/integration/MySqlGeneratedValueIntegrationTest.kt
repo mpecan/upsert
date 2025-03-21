@@ -1,6 +1,5 @@
 package si.pecan.upsert.integration
 
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
@@ -44,19 +43,6 @@ class MySqlGeneratedValueIntegrationTest {
             registry.add("spring.datasource.driver-class-name") { mysqlContainer.driverClassName }
             registry.add("spring.jpa.database-platform") { "org.hibernate.dialect.MySQL8Dialect" }
             registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
-
-            // Configure HikariCP to properly close connections
-            registry.add("spring.datasource.hikari.maximum-pool-size") { "10" }
-            registry.add("spring.datasource.hikari.minimum-idle") { "2" }
-            registry.add("spring.datasource.hikari.connection-timeout") { "30000" }
-            registry.add("spring.datasource.hikari.idle-timeout") { "10000" }
-            registry.add("spring.datasource.hikari.max-lifetime") { "30000" }
-        }
-
-        @AfterAll
-        @JvmStatic
-        fun tearDown() {
-            mysqlContainer.stop()
         }
     }
 

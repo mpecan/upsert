@@ -1,13 +1,11 @@
 package si.pecan.upsert.integration
 
-import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -17,7 +15,6 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import si.pecan.upsert.entity.JpaTestEntityWithGeneratedId
-import si.pecan.upsert.integration.PostgreSqlRepositoryIntegrationTest.Companion
 
 /**
  * Integration tests for entities with @GeneratedValue annotations.
@@ -48,19 +45,6 @@ class PostgreSqlGeneratedValueIntegrationTest {
             registry.add("spring.datasource.driver-class-name") { postgresContainer.driverClassName }
             registry.add("spring.jpa.database-platform") { "org.hibernate.dialect.PostgreSQLDialect" }
             registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
-
-            // Configure HikariCP to properly close connections
-            registry.add("spring.datasource.hikari.maximum-pool-size") { "10" }
-            registry.add("spring.datasource.hikari.minimum-idle") { "2" }
-            registry.add("spring.datasource.hikari.connection-timeout") { "30000" }
-            registry.add("spring.datasource.hikari.idle-timeout") { "10000" }
-            registry.add("spring.datasource.hikari.max-lifetime") { "30000" }
-        }
-
-        @AfterAll
-        @JvmStatic
-        fun tearDown() {
-            postgresContainer.stop()
         }
     }
 
