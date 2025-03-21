@@ -1,0 +1,73 @@
+name: SNAPSHOT Deployment
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  check-snapshot:
+    runs-on: ubuntu-latest
+    outputs:
+      is_snapshot: ${{ steps.check-version.outputs.is_snapshot }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check if version is SNAPSHOT
+        id: check-version
+        run: |
+          # Extract version from gradle.properties
+          VERSION=$(grep -oP 'version=\K[^\s]+' gradle.properties)
+          # Check if version already has -SNAPSHOT suffix
+          if [[ $VERSION == *-SNAPSHOT ]]; then
+            echo "is_snapshot=true" >> $GITHUB_OUTPUT
+            echo "Current version is a SNAPSHOT version: $VERSION"
+          else
+            echo "is_snapshot=false" >> $GITHUB_OUTPUT
+            echo "Current version is not a SNAPSHOT version: $VERSION"
+          fi
+
+  deploy-snapshot:
+    needs: check-snapshot
+    if: ${{ needs.check-snapshot.outputs.is_snapshot == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Test
+        run: ./gradlew test
+
+      # Set up GPG for signing
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      # Publish to Maven Central SNAPSHOT repository
+      - name: Publish to Maven Central SNAPSHOT repository
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          SIGNING_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          SIGNING_PASSWORD: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          # Temporarily modify the repository URL to point to the SNAPSHOT repository
+          sed -i 's|https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/|https://s01.oss.sonatype.org/content/repositories/snapshots/|' build.gradle.kts
+          ./gradlew publish

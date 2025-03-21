@@ -30,7 +30,19 @@ jobs:
 
       - name: Test
         run: ./gradlew test
-      
-      # This is a placeholder for future Maven Central publishing
-      # - name: Publish to Maven Central
-      #   run: ./gradlew publish
+
+      # Set up GPG for signing
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      # Publish to Maven Central
+      - name: Publish to Maven Central
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+          SIGNING_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          SIGNING_PASSWORD: ${{ secrets.GPG_PASSPHRASE }}
+        run: ./gradlew publish

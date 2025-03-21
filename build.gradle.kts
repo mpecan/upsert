@@ -4,10 +4,11 @@ plugins {
     id("org.springframework.boot") version "3.4.2"
     id("io.spring.dependency-management") version "1.1.7"
     id("maven-publish")
+    id("signing")
 }
 
 group = "si.pecan"
-version = "0.0.1-SNAPSHOT"
+version = project.property("version").toString()
 
 java {
     toolchain {
@@ -69,6 +70,12 @@ tasks.register<Jar>("sourceJar") {
     archiveClassifier.set("sources")
 }
 
+// Create a javadoc jar for publishing
+tasks.register<Jar>("javadocJar") {
+    from(tasks.named("javadoc"))
+    archiveClassifier.set("javadoc")
+}
+
 // Disable Spring Boot's executable jar
 tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
     enabled = false
@@ -83,28 +90,32 @@ publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
-            
+
             artifact(tasks["sourceJar"])
-            
+            artifact(tasks["javadocJar"])
+
             pom {
                 name.set("Spring Data JPA Upsert")
                 description.set("A Spring Data JPA extension providing upsert operations")
                 url.set("https://github.com/mpecan/upsert")
-                
+
                 licenses {
                     license {
                         name.set("MIT License")
                         url.set("https://opensource.org/licenses/MIT")
                     }
                 }
-                
+
                 developers {
                     developer {
                         id.set("mpecan")
                         name.set("Matjaž Pečan")
+                        email.set("matjaz.pecan@gmail.com")
+                        organization.set("Pecan")
+                        organizationUrl.set("https://github.com/mpecan")
                     }
                 }
-                
+
                 scm {
                     connection.set("scm:git:git://github.com/mpecan/upsert.git")
                     developerConnection.set("scm:git:ssh://github.com/mpecan/upsert.git")
@@ -112,5 +123,84 @@ publishing {
                 }
             }
         }
+    }
+
+    repositories {
+        maven {
+            name = "OSSRH"
+            url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+            credentials {
+                username = project.findProperty("ossrhUsername") as String?
+                    ?: System.getenv("OSSRH_USERNAME")
+                password = project.findProperty("ossrhPassword") as String?
+                    ?: System.getenv("OSSRH_PASSWORD")
+            }
+        }
+    }
+}
+
+signing {
+    // Check if GPG key details are provided
+    val signingKeyId =
+        project.findProperty("signing.keyId") as String? ?: System.getenv("SIGNING_KEY_ID")
+    val signingPassword =
+        project.findProperty("signing.password") as String? ?: System.getenv("SIGNING_PASSWORD")
+    val signingSecretKeyRingFile = project.findProperty("signing.secretKeyRingFile") as String?
+        ?: System.getenv("SIGNING_SECRET_KEY_RING_FILE")
+
+    // If all signing properties are provided, use them
+    if (signingKeyId != null && signingPassword != null && signingSecretKeyRingFile != null) {
+        useInMemoryPgpKeys(signingKeyId, File(signingSecretKeyRingFile).readText(), signingPassword)
+    } else {
+        // Otherwise, try to use gpg command
+        useGpgCmd()
+    }
+
+    // Only sign when publishing to Maven Central
+    setRequired { gradle.taskGraph.hasTask("publishToSonatype") || gradle.taskGraph.hasTask("publishToMavenLocal") }
+
+    sign(publishing.publications["maven"])
+}
+
+// Task to generate checksums for Maven Central
+tasks.register("generateChecksums") {
+    description = "Generates checksums for Maven Central"
+    group = "publishing"
+
+    doLast {
+        val publishTask = tasks.named("publishMavenPublicationToOSSRHRepository").get()
+        val publishDir = publishTask.outputs.files.singleFile
+
+        fileTree(publishDir) {
+            include("**/*.jar")
+            include("**/*.pom")
+        }.forEach { file ->
+            // Generate MD5 checksum
+            ant.withGroovyBuilder {
+                "checksum"("file" to file, "algorithm" to "MD5", "fileext" to ".md5")
+            }
+
+            // Generate SHA-1 checksum
+            ant.withGroovyBuilder {
+                "checksum"("file" to file, "algorithm" to "SHA-1", "fileext" to ".sha1")
+            }
+
+            // Generate SHA-256 checksum (optional)
+            ant.withGroovyBuilder {
+                "checksum"("file" to file, "algorithm" to "SHA-256", "fileext" to ".sha256")
+            }
+        }
+    }
+}
+
+// Make publish task depend on generateChecksums
+tasks.named("publish") {
+    finalizedBy("generateChecksums")
+}
+
+// Task to print the project version (for testing purposes)
+tasks.register("printVersion") {
+    doLast {
+        println("Project version: ${project.version}")
     }
 }
