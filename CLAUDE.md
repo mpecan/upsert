@@ -5,7 +5,7 @@
 - Build: `./gradlew build`
 - Test all: `./gradlew test`
 - Single test:
-  `./gradlew test --tests "si.pecan.upsert.integration.MySqlRepositoryIntegrationTest.should insert new jpa entity using repository"`
+  `./gradlew test --tests "io.github.mpecan.upsert.integration.MySqlRepositoryIntegrationTest.should insert new jpa entity using repository"`
 - Debug tests: `./gradlew test --debug`
 
 ## Code Style
