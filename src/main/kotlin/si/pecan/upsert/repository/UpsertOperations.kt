@@ -1,7 +1,5 @@
 package si.pecan.upsert.repository
 
-import si.pecan.upsert.model.UpsertModel
-
 /**
  * Interface for upsert operations.
  */

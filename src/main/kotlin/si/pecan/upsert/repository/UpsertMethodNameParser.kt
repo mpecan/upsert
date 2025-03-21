@@ -1,5 +1,7 @@
 package si.pecan.upsert.repository
 
+import si.pecan.upsert.model.UpsertInfo
+
 /**
  * Parser for upsert method names.
  * This class is responsible for parsing method names like "upsertAllOnAgendaIdAndTypeIgnoringUpdatedAt"
@@ -83,18 +85,3 @@ class UpsertMethodNameParser {
     }
 }
 
-/**
- * Data class to hold information extracted from an upsert method name.
- *
- * @param isUpsertAll Whether the method is an upsertAll method
- * @param onFields The fields to use for the ON clause
- * @param ignoredFields The fields to ignore during updates
- * @param ignoreAllFields Whether to ignore all fields during updates
- */
-data class UpsertInfo(
-    val methodName: String,
-    val isUpsertAll: Boolean,
-    val onFields: List<String>,
-    val ignoredFields: List<String>,
-    val ignoreAllFields: Boolean
-)
