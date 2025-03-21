@@ -130,16 +130,22 @@ class UpsertModel(
         ignoreColumns: List<String>? = null,
         ignoreAllFields: Boolean? = null,
     ): UpsertInstance {
-        val updateColumns = ignoreColumns?.let { ignoredColumns ->
-            getDefaultUpdateColumns().filter {
-                it.name !in ignoredColumns
+        val onColumnsInUse = onColumns?.let { getOnColumns(it) } ?: getDefaultOnColumns()
+        val updateColumns = when {
+            ignoreAllFields == true -> emptyList()
+            ignoreColumns == null -> getDefaultValues().filter {
+                it !in onColumnsInUse
             }
-        } ?: metadataProvider.getIdColumns()
+            ignoreColumns.isNotEmpty() -> getDefaultValues().filter {
+                it.name !in ignoreColumns && it !in onColumnsInUse
+            }
+            else -> getDefaultUpdateColumns()
+        }
         return UpsertInstance(
             metadataProvider.getTableName(),
-            onColumns?.let { getOnColumns(it) } ?: getDefaultOnColumns(),
+            onColumnsInUse,
             values?.let { getValueColumns(it) } ?: getDefaultValues(),
-            updateColumns ?: getDefaultUpdateColumns()
+            updateColumns
         )
     }
 
@@ -157,7 +163,7 @@ class UpsertModel(
             this@UpsertModel.validateUpsertQuery(values, onColumns, updateColumns)
         }
 
-        fun withoutValueColumns(columnsToExclude: List<ColumnInfo>):UpsertInstance {
+        fun withoutValueColumns(columnsToExclude: List<ColumnInfo>): UpsertInstance {
             return UpsertInstance(
                 tableName,
                 onColumns,
@@ -167,7 +173,7 @@ class UpsertModel(
         }
 
         fun forFirstUniqueConstraint(): UpsertInstance {
-            if(metadataProvider.getUniqueConstraints().isEmpty()) {
+            if (metadataProvider.getUniqueConstraints().isEmpty()) {
                 throw IllegalStateException("No unique constraints found")
             }
             val uniqueColumns = metadataProvider.getUniqueConstraints().first()
