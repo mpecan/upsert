@@ -69,5 +69,5 @@ jobs:
           SIGNING_PASSWORD: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           # Temporarily modify the repository URL to point to the SNAPSHOT repository
-          sed -i 's|https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/|https://s01.oss.sonatype.org/content/repositories/snapshots/|' build.gradle.kts
+          sed -i 's|https://central.sonatype.com/repository/maven/|https://central.sonatype.com/repository/maven-snapshots/ |' build.gradle.kts
           ./gradlew publish
