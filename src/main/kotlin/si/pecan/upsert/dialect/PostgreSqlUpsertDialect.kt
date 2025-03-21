@@ -5,7 +5,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.support.GeneratedKeyHolder
 import si.pecan.upsert.bean.ExtendedBeanPropertySqlParameterSource
 import si.pecan.upsert.model.UpsertModel
-import java.lang.reflect.Field
 
 /**
  * PostgreSQL implementation of the UpsertDialect interface.
@@ -37,12 +36,14 @@ class PostgreSqlUpsertDialect : UpsertDialect {
             valueColumns.map { column -> ":${column.fieldName}" }.joinToString(", ")
         })"
 
-        val onConflictClause =
-            "ON CONFLICT (${keyColumns.map { it.name }.joinToString(", ")}) DO UPDATE SET"
+        val onConflictClause = if (updateColumns.isEmpty()) {
+            "ON CONFLICT (${keyColumns.map { it.name }.joinToString(", ")}) DO NOTHING"
+        } else {
+            "ON CONFLICT (${keyColumns.map { it.name }.joinToString(", ")}) DO UPDATE SET " +
+                    updateColumns.map { it.name }.joinToString(", ") { "$it = EXCLUDED.$it" }
+        }
 
-        val updateClause = updateColumns.map { it.name }.joinToString(", ") { "$it = EXCLUDED.$it" }
-
-        return "$insertClause $onConflictClause $updateClause"
+        return "$insertClause $onConflictClause"
     }
 
     /**
@@ -149,37 +150,4 @@ class PostgreSqlUpsertDialect : UpsertDialect {
             }
         }
     }
-
-    /**
-     * Convert a value to the field type if necessary.
-     *
-     * @param value The value to convert
-     * @param field The field to convert to
-     * @return The converted value
-     */
-    private fun convertToFieldType(value: Any, field: Field): Any {
-        // Handle common type conversions
-        return when {
-            field.type == Int::class.java && value is Number -> value.toInt()
-            field.type == Long::class.java && value is Number -> value.toLong()
-            field.type == Long::class.javaObjectType && value is Number -> value.toLong()
-            field.type == Double::class.java && value is Number -> value.toDouble()
-            field.type == Float::class.java && value is Number -> value.toFloat()
-            field.type == Boolean::class.java && value is Boolean -> value
-            field.type == String::class.java && value is String -> value
-            field.type == java.math.BigInteger::class.java && value is Number -> java.math.BigInteger.valueOf(
-                value.toLong()
-            )
-
-            else -> value // Return as is for other types
-        }
-    }
-
-    /**
-     * Check if this dialect supports optimized batch operations.
-     * PostgreSQL supports optimized batch operations using unnest.
-     *
-     * @return True as PostgreSQL supports optimized batch operations
-     */
-    override fun supportsOptimizedBatch(): Boolean = true
 }

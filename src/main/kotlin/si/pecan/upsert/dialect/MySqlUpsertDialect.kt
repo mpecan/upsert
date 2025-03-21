@@ -39,7 +39,18 @@ class MySqlUpsertDialect : UpsertDialect {
         val insertClause =
             "INSERT INTO $tableName (${valueColumns.joinToString(", ") { it.name }}) VALUES $allPlaceholders"
 
-        val updateClause = updateColumns.joinToString(", ") { "${it.name} = VALUES(${it.name})" }
+        val updateClause = if (updateColumns.isEmpty()) {
+            // If no columns to update, use a dummy update that effectively does nothing
+            // by setting a key column to its current value
+            if (keyColumns.isNotEmpty()) {
+                "${keyColumns.first().name} = ${keyColumns.first().name}"
+            } else {
+                // Fallback if no key columns are provided
+                "1=1"
+            }
+        } else {
+            updateColumns.joinToString(", ") { "${it.name} = VALUES(${it.name})" }
+        }
 
         return "$insertClause ON DUPLICATE KEY UPDATE $updateClause"
     }

@@ -41,11 +41,4 @@ interface UpsertDialect {
         entities: List<T>,
         jdbcTemplate: NamedParameterJdbcTemplate
     ): List<T>
-
-    /**
-     * Check if this dialect supports optimized batch operations.
-     * 
-     * @return True if optimized batch operations are supported, false otherwise
-     */
-    fun supportsOptimizedBatch(): Boolean = false
 }

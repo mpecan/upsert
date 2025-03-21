@@ -128,6 +128,24 @@ val user = User(username = "john", email = "john@example.com", updatedAt = Local
 userRepository.upsertOnUsernameIgnoringUpdatedAt(user)
 ```
 
+### Ignoring All Fields (Insert-Only Mode)
+
+When you want to only insert new records and not update existing ones, you can use the `IgnoringAllFields` suffix in your method name:
+
+```kotlin
+interface UserRepository : UpsertRepository<User, Long> {
+    // Upsert using id as the ON clause and ignoring all fields
+    // This will only insert new rows and not update existing ones
+    fun upsertOnIdIgnoringAllFields(user: User): Int
+}
+
+// Use the repository
+val user = User(id = 1, username = "john", email = "john@example.com")
+userRepository.upsertOnIdIgnoringAllFields(user)
+```
+
+In PostgreSQL, this is implemented using the `DO NOTHING` option, which simply ignores conflicts without performing any updates. This ensures that existing records are not modified while still allowing new records to be inserted.
+
 ### Using Multiple Fields for Conflict Detection
 
 ```kotlin
@@ -168,7 +186,7 @@ VALUES (:username, :email)
 ON CONFLICT (username) DO NOTHING
 ```
 
-This can be useful when you want to insert records only if they don't already exist.
+This can be useful when you want to insert records only if they don't already exist. This is how the `IgnoringAllFields` feature is implemented in PostgreSQL - when all update columns are ignored, the dialect automatically uses `DO NOTHING` instead of `DO UPDATE SET`.
 
 ## Limitations
 

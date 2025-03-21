@@ -50,6 +50,9 @@ class MySqlRepositoryIntegrationTest {
     private lateinit var jpaTestEntityRepository: JpaTestEntityRepository
 
     @Autowired
+    private lateinit var customMethodsTestRepository: CustomMethodsTestRepository
+
+    @Autowired
     private lateinit var jdbcTemplate: JdbcTemplate
 
     @BeforeEach
@@ -217,5 +220,51 @@ class MySqlRepositoryIntegrationTest {
 
         // Then
         assertEquals(0, results.size)
+    }
+
+    @Test
+    fun `should not update existing entity when using ignoreAllFields`() {
+        // Given
+        val entity1 = JpaTestEntity(20, "Unique Name", "Original Description", true)
+        val entity2 = JpaTestEntity(20, "Updated Name", "Updated Description", false)
+
+        // Insert the first entity
+        jpaTestEntityRepository.upsert(entity1)
+
+        // When - upsert with the same id but different name, description and active status
+        val result = customMethodsTestRepository.upsertOnIdIgnoringAllFields(entity2)
+
+        // Then
+        assertEquals(20, result.id)
+        assertEquals("Updated Name", result.name)
+
+        // Verify the entity was NOT updated in the database
+        val queryResult = jdbcTemplate.queryForMap("SELECT * FROM jpa_test_entity WHERE id = ?", 20)
+        assertEquals(20L, queryResult["id"])
+        assertEquals("Unique Name", queryResult["name"]) // Should still have original name
+        assertEquals("Original Description", queryResult["description"]) // Should still have original description
+        assertEquals(true, queryResult["active"]) // Should still be active
+    }
+
+    @Test
+    fun `should insert new entity when using ignoreAllFields`() {
+        // Given
+        val entity = JpaTestEntity(21, "New Unique Name", "New Description", true)
+
+        // When - upsert a new entity
+        val result = customMethodsTestRepository.upsertOnIdIgnoringAllFields(entity)
+
+        // Then
+        assertEquals(21, result.id)
+        assertEquals("New Unique Name", result.name)
+        assertEquals("New Description", result.description)
+        assertEquals(true, result.active)
+
+        // Verify the entity was inserted in the database
+        val queryResult = jdbcTemplate.queryForMap("SELECT * FROM jpa_test_entity WHERE id = ?", 21)
+        assertEquals(21L, queryResult["id"])
+        assertEquals("New Unique Name", queryResult["name"])
+        assertEquals("New Description", queryResult["description"])
+        assertEquals(true, queryResult["active"])
     }
 }

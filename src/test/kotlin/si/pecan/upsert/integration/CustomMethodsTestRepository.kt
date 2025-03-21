@@ -49,4 +49,10 @@ interface CustomMethodsTestRepository : JpaTestEntityRepository {
      * Upsert multiple entities using 'name' as the ON clause and ignoring 'active' field.
      */
     fun upsertAllOnNameIgnoringActive(entities: List<JpaTestEntity>): List<JpaTestEntity>
+
+    /**
+     * Upsert a single entity using 'id' as the ON clause and ignoring all fields.
+     * This will only insert new rows and not update existing ones.
+     */
+    fun upsertOnIdIgnoringAllFields(entity: JpaTestEntity): JpaTestEntity
 }
