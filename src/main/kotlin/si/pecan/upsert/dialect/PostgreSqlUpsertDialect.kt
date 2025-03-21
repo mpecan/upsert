@@ -1,5 +1,7 @@
 package si.pecan.upsert.dialect
 
+import org.springframework.beans.BeanWrapperImpl
+import org.springframework.beans.PropertyAccessorFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.support.GeneratedKeyHolder
 import si.pecan.upsert.model.UpsertModel
@@ -134,16 +136,14 @@ class PostgreSqlUpsertDialect : UpsertDialect {
         if (keysList.isNotEmpty()) {
             // Find generated columns
             val generatedColumns = upsertInstance.values.filter { it.generated }
-
             entities.forEachIndexed { index, entity ->
+                val beanWrapperImpl = PropertyAccessorFactory.forDirectFieldAccess(entity)
                 if (index < keysList.size) {
                     val keys = keysList[index]
                     generatedColumns.forEach { column ->
                         val key = keys[column.name]
                         if (key != null) {
-                            val field = entity::class.java.getDeclaredField(column.fieldName)
-                            field.isAccessible = true
-                            field.set(entity, convertToFieldType(key, field))
+                           beanWrapperImpl.setPropertyValue(column.fieldName, key)
                         }
                     }
                 }
