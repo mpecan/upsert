@@ -1,6 +1,7 @@
 package io.github.mpecan.upsert.model
 
 import io.github.mpecan.upsert.dialect.ColumnInfo
+import jakarta.persistence.Column
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.PersistenceUnitUtil
 import jakarta.persistence.metamodel.Metamodel
@@ -40,8 +41,18 @@ class JpaUpsertModelMetadataProvider(
             val isGenerated = field.annotations.any { it is GeneratedValue }
             val sqlType =
                 StatementCreatorUtils.javaTypeToSqlParameterType(it.javaType)
+            val columnName = when {
+                field.annotations.any { it.javaClass == Column::class.java } -> {
+                    field.getAnnotation(Column::class.java).name
+                }
+
+                else -> {
+                    // get the column name from the field name and transform it to snake case
+                    field.name.replace(Regex("([a-z])([A-Z]+)"), "$1_$2").lowercase()
+                }
+            }
             ColumnInfo(
-                it.name,
+                columnName,
                 it.name,
                 it.javaType,
                 sqlType,

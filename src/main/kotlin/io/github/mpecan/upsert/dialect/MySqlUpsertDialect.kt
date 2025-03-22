@@ -33,7 +33,7 @@ class MySqlUpsertDialect : UpsertDialect {
 
         // Create placeholders for all entities in the batch
         val allPlaceholders = (1..batchSize).joinToString(", ") {
-            "(${valueColumns.map { column -> ":${column.name}_${it}" }.joinToString(", ")})"
+            "(${valueColumns.map { column -> ":${column.fieldName}_${it}" }.joinToString(", ")})"
         }
 
         val insertClause =
