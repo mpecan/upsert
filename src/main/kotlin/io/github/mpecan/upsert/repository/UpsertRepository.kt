@@ -1,5 +1,6 @@
 package io.github.mpecan.upsert.repository
 
+import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.repository.NoRepositoryBean
 import org.springframework.data.repository.Repository
 
@@ -11,7 +12,7 @@ import org.springframework.data.repository.Repository
  * @param ID The type of the entity's ID
  */
 @NoRepositoryBean
-interface UpsertRepository<T : Any, ID> : Repository<T, ID> {
+interface UpsertRepository<T : Any, ID> : Repository<T, ID>, JpaRepository<T, ID> {
 
     /**
      * Perform an upsert operation for the given entity.
