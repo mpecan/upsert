@@ -1,6 +1,6 @@
 # Upsert Repository
 
-![Maven Central Version](https://img.shields.io/maven-central/v/io.github.mpecan/upsert)
+[![Maven Central Version](https://img.shields.io/maven-central/v/io.github.mpecan/upsert)](https://central.sonatype.com/artifact/io.github.mpecan/upsert)
 
 A Spring Data JPA extension that provides upsert capabilities for repositories. This library simplifies the process of inserting or updating records in a database using Spring Data JPA.
 
@@ -175,7 +175,7 @@ This library is available on Maven Central. You can add it to your project using
 
 ```kotlin
 dependencies {
-   implementation("io.github.mpecan:upsert:0.0.1")
+    implementation("io.github.mpecan:upsert:1.0.1")
 }
 ```
 
@@ -183,7 +183,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'io.github.mpecan:upsert:0.0.1'
+    implementation 'io.github.mpecan:upsert:1.0.1'
 }
 ```
 
@@ -194,7 +194,7 @@ dependencies {
 <dependency>
   <groupId>io.github.mpecan</groupId>
   <artifactId>upsert</artifactId>
-  <version>0.0.1</version>
+  <version>1.0.1</version>
 </dependency>
 ```
 

@@ -78,3 +78,44 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.GPG_PASSPHRASE }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.GPG_PRIVATE_KEY }}
         run: ./gradlew publish --build-cache
+
+      # Generate GitHub App token
+      - name: Generate GitHub App token
+        uses: actions/create-github-app-token@v1
+        id: generate-token
+        with:
+          app_id: ${{ secrets.REPOSITORY_BUTLER_APP_ID }}
+          private_key: ${{ secrets.REPOSITORY_BUTLER_PEM }}
+
+      # Update README.md with current version
+      - name: Update README.md with current version
+        id: update-readme
+        run: |
+          # Extract version from gradle.properties
+          VERSION=$(grep -oP 'version=\K[^\s]+' gradle.properties)
+
+          # Remove -SNAPSHOT suffix if present
+          RELEASE_VERSION=${VERSION%-SNAPSHOT}
+
+          # Set as output for use in subsequent steps
+          echo "release_version=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+
+          # Update version in README.md
+          sed -i "s/implementation(\"io.github.mpecan:upsert:[^\"]*\")/implementation(\"io.github.mpecan:upsert:$RELEASE_VERSION\")/" README.md
+          sed -i "s/implementation 'io.github.mpecan:upsert:[^']*'/implementation 'io.github.mpecan:upsert:$RELEASE_VERSION'/" README.md
+          sed -i "s/<version>[^<]*<\/version>/<version>$RELEASE_VERSION<\/version>/" README.md
+
+      # Create Pull Request
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          commit-message: "docs: update version in README.md to ${{ steps.update-readme.outputs.release_version }} [skip ci]"
+          title: "docs: update version in README.md to ${{ steps.update-readme.outputs.release_version }}"
+          body: |
+            This PR updates the version references in README.md to match the latest release version ${{ steps.update-readme.outputs.release_version }}.
+
+            Automated changes by GitHub Actions after release creation.
+          branch: update-readme-version
+          base: main
+          delete-branch: true
