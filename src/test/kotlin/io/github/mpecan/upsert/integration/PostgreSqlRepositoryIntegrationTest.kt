@@ -6,28 +6,14 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.SpringBootApplication
-import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.InvalidDataAccessApiUsageException
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
-
-/**
- * Test application for PostgreSQL repository integration tests.
- */
-@SpringBootApplication
-@EntityScan("io.github.mpecan.upsert.entity")
-@EnableJpaRepositories(
-    basePackages = ["io.github.mpecan.upsert.integration"],
-    repositoryFactoryBeanClass = io.github.mpecan.upsert.repository.UpsertRepositoryFactoryBean::class
-)
-class TestApplication
 
 /**
  * Integration tests for PostgreSQL UpsertRepository implementation.

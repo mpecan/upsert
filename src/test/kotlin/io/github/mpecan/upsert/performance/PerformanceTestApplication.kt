@@ -11,6 +11,5 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 @EntityScan(basePackages = ["io.github.mpecan.upsert.performance", "io.github.mpecan.upsert.entity"])
 @EnableJpaRepositories(
     basePackages = ["io.github.mpecan.upsert.performance"],
-    repositoryFactoryBeanClass = io.github.mpecan.upsert.repository.UpsertRepositoryFactoryBean::class
 )
 class PerformanceTestApplication
