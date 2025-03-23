@@ -8,8 +8,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
  * Test application for performance tests.
  */
 @SpringBootApplication
-@EntityScan(basePackages = ["io.github.mpecan.upsert.performance", "io.github.mpecan.upsert.entity"])
+@EntityScan(basePackages = ["io.github.mpecan.upsert.performance.entity"])
 @EnableJpaRepositories(
-    basePackages = ["io.github.mpecan.upsert.performance"],
+    basePackages = ["io.github.mpecan.upsert.performance.repository"]
 )
 class PerformanceTestApplication

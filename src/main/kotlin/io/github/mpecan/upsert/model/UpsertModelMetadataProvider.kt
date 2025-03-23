@@ -1,7 +1,5 @@
 package io.github.mpecan.upsert.model
 
-import io.github.mpecan.upsert.dialect.ColumnInfo
-
 /**
  * Interface for providing metadata needed by UpsertModel.
  * This interface encapsulates the parts of UpsertModel that are hard to mock in tests.

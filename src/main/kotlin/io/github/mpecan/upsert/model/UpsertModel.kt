@@ -1,7 +1,5 @@
 package io.github.mpecan.upsert.model
 
-import io.github.mpecan.upsert.dialect.ColumnInfo
-
 /**
  * Model class for upsert operations.
  * This class uses a UpsertModelMetadataProvider to get metadata about the entity.

@@ -1,19 +1,14 @@
-package io.github.mpecan.upsert.integration
+package io.github.mpecan.upsert.integration.base
 
 import io.github.mpecan.upsert.entity.JpaTestEntity
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.BeforeEach
+import io.github.mpecan.upsert.integration.TestApplication
+import io.github.mpecan.upsert.integration.repositories.CustomMethodsTestRepository
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.InvalidDataAccessApiUsageException
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.junit.jupiter.Container
+import org.springframework.transaction.annotation.Transactional
 import org.testcontainers.junit.jupiter.Testcontainers
 
 /**
@@ -22,49 +17,11 @@ import org.testcontainers.junit.jupiter.Testcontainers
  */
 @SpringBootTest(classes = [TestApplication::class])
 @Testcontainers
-class CustomMethodsIntegrationTest {
-
-    private val logger = LoggerFactory.getLogger(CustomMethodsIntegrationTest::class.java)
-
-    companion object {
-        @Container
-        @JvmStatic
-        val postgresContainer = PostgreSQLContainer<Nothing>("postgres:14-alpine").apply {
-            withDatabaseName("testdb")
-            withUsername("test")
-            withPassword("test")
-        }
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun setProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { postgresContainer.jdbcUrl }
-            registry.add("spring.datasource.username") { postgresContainer.username }
-            registry.add("spring.datasource.password") { postgresContainer.password }
-            registry.add("spring.datasource.driver-class-name") { postgresContainer.driverClassName }
-            registry.add("spring.jpa.database-platform") { "org.hibernate.dialect.PostgreSQLDialect" }
-            registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
-        }
-    }
+@Transactional
+abstract class AbstractCustomMethodsIntegrationTest {
 
     @Autowired
     private lateinit var customMethodsTestRepository: CustomMethodsTestRepository
-
-    @Autowired
-    private lateinit var jdbcTemplate: JdbcTemplate
-
-    @BeforeEach
-    fun setUp() {
-        try {
-            // Clear the tables before each test
-            jdbcTemplate.execute("DELETE FROM jpa_test_entity")
-            logger.info("Tables cleared successfully")
-
-        } catch (e: Exception) {
-            logger.error("Error clearing tables", e)
-            throw e
-        }
-    }
 
     @Test
     fun `should upsert successfully using id as ON clause`() {
@@ -79,9 +36,9 @@ class CustomMethodsIntegrationTest {
         val result = customMethodsTestRepository.upsertOnId(entity2)
 
         // Then
-        assertEquals(entity1.name, result.name)
-        assertEquals(entity2.description, result.description)
-        assertEquals(entity2.active, result.active)
+        Assertions.assertEquals(entity1.name, result.name)
+        Assertions.assertEquals(entity2.description, result.description)
+        Assertions.assertEquals(entity2.active, result.active)
     }
 
     @Test
@@ -97,9 +54,9 @@ class CustomMethodsIntegrationTest {
         val result = customMethodsTestRepository.upsertIgnoringName(entity2)
 
         // Then
-        assertEquals(entity2.name, result.name)
-        assertEquals(entity2.description, result.description)
-        assertEquals(entity2.active, result.active)
+        Assertions.assertEquals(entity2.name, result.name)
+        Assertions.assertEquals(entity2.description, result.description)
+        Assertions.assertEquals(entity2.active, result.active)
     }
 
     @Test
@@ -112,7 +69,7 @@ class CustomMethodsIntegrationTest {
         customMethodsTestRepository.upsert(entity1)
 
         // When/Then - expect exception when using name as ON clause
-        val exception = assertThrows(InvalidDataAccessApiUsageException::class.java) {
+        val exception = Assertions.assertThrows(InvalidDataAccessApiUsageException::class.java) {
             customMethodsTestRepository.upsertOnName(entity2)
         }
 
@@ -131,7 +88,7 @@ class CustomMethodsIntegrationTest {
         customMethodsTestRepository.upsert(entity1)
 
         // When/Then - expect exception when using name as ON clause
-        val exception = assertThrows(InvalidDataAccessApiUsageException::class.java) {
+        val exception = Assertions.assertThrows(InvalidDataAccessApiUsageException::class.java) {
             customMethodsTestRepository.upsertOnNameIgnoringActive(entity2)
         }
 
@@ -150,7 +107,7 @@ class CustomMethodsIntegrationTest {
         customMethodsTestRepository.upsert(entity1)
 
         // When/Then - expect exception when using name and description as ON clause
-        val exception = assertThrows(InvalidDataAccessApiUsageException::class.java) {
+        val exception = Assertions.assertThrows(InvalidDataAccessApiUsageException::class.java) {
             customMethodsTestRepository.upsertOnNameAndDescription(entity2)
         }
 
@@ -169,7 +126,7 @@ class CustomMethodsIntegrationTest {
         customMethodsTestRepository.upsert(entity1)
 
         // When/Then - expect exception when using name as ON clause and ignoring all fields
-        assertThrows(InvalidDataAccessApiUsageException::class.java) {
+        Assertions.assertThrows(InvalidDataAccessApiUsageException::class.java) {
             customMethodsTestRepository.upsertOnNameIgnoringAllFields(entity2)
         }
 
@@ -193,7 +150,7 @@ class CustomMethodsIntegrationTest {
         customMethodsTestRepository.upsertAll(entities1)
 
         // When/Then - expect exception when using name as ON clause
-        val exception = assertThrows(InvalidDataAccessApiUsageException::class.java) {
+        val exception = Assertions.assertThrows(InvalidDataAccessApiUsageException::class.java) {
             customMethodsTestRepository.upsertAllOnName(entities2)
         }
 
@@ -219,7 +176,7 @@ class CustomMethodsIntegrationTest {
         customMethodsTestRepository.upsertAll(entities1)
 
         // When/Then - expect exception when using name as ON clause
-        val exception = assertThrows(InvalidDataAccessApiUsageException::class.java) {
+        val exception = Assertions.assertThrows(InvalidDataAccessApiUsageException::class.java) {
             customMethodsTestRepository.upsertAllOnNameIgnoringActive(entities2)
         }
 

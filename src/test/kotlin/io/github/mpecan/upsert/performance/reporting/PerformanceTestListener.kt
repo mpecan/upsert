@@ -1,4 +1,4 @@
-package io.github.mpecan.upsert.performance
+package io.github.mpecan.upsert.performance.reporting
 
 import org.junit.platform.launcher.TestExecutionListener
 import org.junit.platform.launcher.TestPlan

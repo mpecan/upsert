@@ -1,5 +1,8 @@
 package io.github.mpecan.upsert.performance
 
+import io.github.mpecan.upsert.performance.entity.PerformanceTestEntity
+import io.github.mpecan.upsert.performance.reporting.PerformanceTestUtils
+import io.github.mpecan.upsert.performance.repository.PerformanceTestRepository
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
@@ -10,44 +13,21 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.MySQLContainer
-import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.LocalDateTime
 
 /**
- * Performance tests for MySQL comparing upsert operations with Spring Data JPA saveAll operations.
+ * Base performance test class to be used when comparing upsert operations with Spring Data JPA saveAll operations.
  * Each test is run multiple times to get an average performance measurement.
  */
 @SpringBootTest(classes = [PerformanceTestApplication::class])
 @Testcontainers
 @Tag("performance")
-class MySqlPerformanceTest {
+abstract class AbstractPerformanceTest {
 
-    private val logger = LoggerFactory.getLogger(MySqlPerformanceTest::class.java)
+    abstract val databaseType: String
 
-    companion object {
-        @Container
-        @JvmStatic
-        val mysqlContainer = MySQLContainer<Nothing>("mysql:8.0").apply {
-            withDatabaseName("testdb")
-            withUsername("test")
-            withPassword("test")
-        }
-
-        @JvmStatic
-        @DynamicPropertySource
-        fun setProperties(registry: DynamicPropertyRegistry) {
-            registry.add("spring.datasource.url") { mysqlContainer.jdbcUrl }
-            registry.add("spring.datasource.username") { mysqlContainer.username }
-            registry.add("spring.datasource.password") { mysqlContainer.password }
-            registry.add("spring.datasource.driver-class-name") { mysqlContainer.driverClassName }
-            registry.add("spring.jpa.database-platform") { "org.hibernate.dialect.MySQL8Dialect" }
-            registry.add("spring.jpa.hibernate.ddl-auto") { "create-drop" }
-        }
-    }
+    private val logger = LoggerFactory.getLogger(AbstractPerformanceTest::class.java)
 
     @Autowired
     private lateinit var performanceTestRepository: PerformanceTestRepository
@@ -111,7 +91,7 @@ class MySqlPerformanceTest {
         // Run the performance test
         PerformanceTestUtils.runPerformanceTest(
             testName = "Insert Performance",
-            databaseType = "MySQL",
+            databaseType = databaseType,
             entityCount = size,
             repetitions = 10,
             logger = logger,
@@ -154,7 +134,7 @@ class MySqlPerformanceTest {
         // Run the performance test
         PerformanceTestUtils.runPerformanceTest(
             testName = "Update Performance",
-            databaseType = "MySQL",
+            databaseType = databaseType,
             entityCount = size,
             repetitions = 10,
             logger = logger,
@@ -192,7 +172,7 @@ class MySqlPerformanceTest {
         // Run the performance test
         PerformanceTestUtils.runPerformanceTest(
             testName = "Mixed Insert-Update Performance",
-            databaseType = "MySQL",
+            databaseType = databaseType,
             entityCount = size,
             repetitions = 10,
             logger = logger,
@@ -227,7 +207,7 @@ class MySqlPerformanceTest {
             // Run the performance test for this batch size
             PerformanceTestUtils.runPerformanceTest(
                 testName = "Batch Size Performance",
-                databaseType = "MySQL",
+                databaseType = databaseType,
                 entityCount = totalSize,
                 batchSize = batchSize,
                 repetitions = 10,

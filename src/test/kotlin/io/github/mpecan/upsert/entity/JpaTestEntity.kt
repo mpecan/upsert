@@ -18,4 +18,6 @@ data class JpaTestEntity(
     val description: String? = null,
     
     val active: Boolean = true
-)
+) {
+    constructor() : this(0, "", "", true)
+}

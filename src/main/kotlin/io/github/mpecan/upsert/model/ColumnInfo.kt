@@ -1,4 +1,4 @@
-package io.github.mpecan.upsert.dialect
+package io.github.mpecan.upsert.model
 
 data class ColumnInfo(
     val name: String,
