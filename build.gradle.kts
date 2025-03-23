@@ -33,7 +33,7 @@ dependencies {
     // Database drivers
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.mysql:mysql-connector-j")
-    runtimeOnly("org.xerial:sqlite-jdbc:3.45.2.0")
+    runtimeOnly("org.xerial:sqlite-jdbc:3.49.1.0")
     runtimeOnly("org.hibernate.orm:hibernate-community-dialects")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
