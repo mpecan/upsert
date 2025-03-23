@@ -1,4 +1,4 @@
-package io.github.mpecan.upsert.performance
+package io.github.mpecan.upsert.performance.reporting
 
 import java.io.File
 import java.time.LocalDateTime

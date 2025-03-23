@@ -1,4 +1,4 @@
-package io.github.mpecan.upsert.integration
+package io.github.mpecan.upsert.integration.repositories
 
 import io.github.mpecan.upsert.entity.JpaTestEntity
 

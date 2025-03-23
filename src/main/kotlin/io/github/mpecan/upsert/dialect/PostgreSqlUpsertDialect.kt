@@ -1,6 +1,7 @@
 package io.github.mpecan.upsert.dialect
 
 import io.github.mpecan.upsert.bean.ExtendedBeanPropertySqlParameterSource
+import io.github.mpecan.upsert.model.ColumnInfo
 import io.github.mpecan.upsert.model.UpsertModel
 import org.springframework.beans.PropertyAccessorFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate

@@ -73,7 +73,6 @@ class UpsertRepositoryQuery(
 
 
     override fun getQueryMethod(): QueryMethod {
-
         return QueryMethod(method, metadata, factory)
     }
 }

@@ -1,4 +1,4 @@
-package io.github.mpecan.upsert.performance
+package io.github.mpecan.upsert.performance.entity
 
 import jakarta.persistence.Entity
 import jakarta.persistence.Id

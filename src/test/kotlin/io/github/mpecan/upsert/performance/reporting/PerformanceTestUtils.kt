@@ -1,4 +1,4 @@
-package io.github.mpecan.upsert.performance
+package io.github.mpecan.upsert.performance.reporting
 
 import org.slf4j.Logger
 import kotlin.system.measureNanoTime

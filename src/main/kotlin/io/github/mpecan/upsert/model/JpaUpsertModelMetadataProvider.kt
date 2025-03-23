@@ -1,6 +1,5 @@
 package io.github.mpecan.upsert.model
 
-import io.github.mpecan.upsert.dialect.ColumnInfo
 import jakarta.persistence.Column
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.PersistenceUnitUtil

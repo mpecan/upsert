@@ -1,5 +1,6 @@
 package io.github.mpecan.upsert.dialect
 
+import io.github.mpecan.upsert.model.ColumnInfo
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

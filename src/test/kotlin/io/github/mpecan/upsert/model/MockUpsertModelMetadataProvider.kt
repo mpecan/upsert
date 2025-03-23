@@ -1,7 +1,5 @@
 package io.github.mpecan.upsert.model
 
-import io.github.mpecan.upsert.dialect.ColumnInfo
-
 /**
  * Mock implementation of UpsertModelMetadataProvider for testing.
  * This class takes all the necessary information as constructor parameters,

@@ -1,5 +1,6 @@
-package io.github.mpecan.upsert.performance
+package io.github.mpecan.upsert.performance.repository
 
+import io.github.mpecan.upsert.performance.entity.PerformanceTestEntity
 import io.github.mpecan.upsert.repository.UpsertRepository
 import org.springframework.data.jpa.repository.JpaRepository
 
