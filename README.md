@@ -111,7 +111,24 @@ The method name is parsed to extract the following information:
 
 ## Configuration
 
-To enable upsert capabilities, you need to include the `UpsertRepositoryFactoryBean` in your Spring configuration:
+The library is automatically configured when you include it in your Spring Boot application. No
+additional configuration is required.
+
+Simply add the dependency to your project and create repositories that extend `UpsertRepository`:
+
+```kotlin
+@SpringBootApplication
+@EnableJpaRepositories(
+    basePackages = ["com.example.repositories"]
+)
+class Application {
+    // ...
+}
+```
+
+### Legacy Configuration (Pre-1.1.0)
+
+In older versions, you needed to explicitly specify the `UpsertRepositoryFactoryBean`:
 
 ```kotlin
 @Configuration
@@ -122,6 +139,8 @@ class AppConfig {
     // ...
 }
 ```
+
+This is no longer necessary as the library now uses Spring Boot's auto-configuration mechanism.
 
 ## Implementation Details
 
