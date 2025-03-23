@@ -37,7 +37,8 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testImplementation("org.junit.platform:junit-platform-launcher")
 
     // Test containers for integration testing
     testImplementation("org.testcontainers:testcontainers")
@@ -65,6 +66,26 @@ tasks.withType<Test> {
     systemProperty("spring.datasource.hikari.idle-timeout", "2000")
     systemProperty("spring.datasource.hikari.max-lifetime", "5000")
     systemProperty("spring.datasource.hikari.shutdown-timeout", "1000")
+}
+
+tasks.test {
+    useJUnitPlatform {
+        excludeTags("performance")
+    }
+
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
+}
+
+tasks.register<Test>("performanceTest") {
+    useJUnitPlatform {
+        includeTags("performance")
+    }
+
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
 }
 
 // Create a source jar for publishing
