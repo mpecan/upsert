@@ -2,6 +2,7 @@ package io.github.mpecan.upsert.performance
 
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -15,13 +16,14 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.time.LocalDateTime
-import kotlin.system.measureTimeMillis
 
 /**
- * Performance tests for MySQL comparing upsert operations with Spring Data JPA saveAll operations.
+ * Performance tests for PostgreSQL comparing upsert operations with Spring Data JPA saveAll operations.
+ * Each test is run multiple times to get an average performance measurement.
  */
 @SpringBootTest(classes = [PerformanceTestApplication::class])
 @Testcontainers
+@Tag("performance")
 class PostgreSqlPerformanceTest {
 
     private val logger = LoggerFactory.getLogger(PostgreSqlPerformanceTest::class.java)
@@ -77,6 +79,7 @@ class PostgreSqlPerformanceTest {
         }
     }
 
+
     /**
      * Generate a list of test entities with the given size.
      */
@@ -101,41 +104,41 @@ class PostgreSqlPerformanceTest {
      * Test the performance of inserting new entities using upsert vs. saveAll.
      */
     @ParameterizedTest
-    @ValueSource(ints = [1, 10, 100, 1000])
+    @ValueSource(ints = [10, 100, 1000])
     fun `test insert performance - upsert vs saveAll`(size: Int) {
         // Generate test data
         val entities = generateEntities(size)
 
-        // Measure time for upsert
-        val upsertTime = measureTimeMillis {
-            performanceTestRepository.upsertAll(entities)
-        }
-
-        // Clear the table
-        jdbcTemplate.execute("DELETE FROM performance_test_entity")
-
-        // Measure time for saveAll
-        val saveAllTime = measureTimeMillis {
-            performanceTestRepository.saveAll(entities)
-        }
-
-        // Log the results
-        logger.info("Insert performance test with $size entities:")
-        logger.info("  Upsert time: $upsertTime ms")
-        logger.info("  SaveAll time: $saveAllTime ms")
-        logger.info("  Difference: ${upsertTime - saveAllTime} ms")
-        logger.info("  Ratio: ${upsertTime.toDouble() / saveAllTime.toDouble()}")
+        // Run the performance test
+        PerformanceTestUtils.runPerformanceTest(
+            testName = "Insert Performance",
+            databaseType = "PostgreSQL",
+            entityCount = size,
+            repetitions = 10,
+            logger = logger,
+            setupFn = {
+                // No setup needed for insert test
+            },
+            upsertFn = {
+                performanceTestRepository.upsertAll(entities)
+            },
+            saveAllFn = {
+                performanceTestRepository.saveAll(entities)
+            },
+            cleanupFn = {
+                jdbcTemplate.execute("DELETE FROM performance_test_entity")
+            }
+        )
     }
 
     /**
      * Test the performance of updating existing entities using upsert vs. saveAll.
      */
     @ParameterizedTest
-    @ValueSource(ints = [1, 10, 100, 1000])
+    @ValueSource(ints = [10, 100, 1000])
     fun `test update performance - upsert vs saveAll`(size: Int) {
-        // Generate and insert initial entities
+        // Generate initial entities
         val initialEntities = generateEntities(size)
-        performanceTestRepository.saveAll(initialEntities)
 
         // Generate updated entities with the same IDs
         val updatedEntities = generateEntities(size).map { entity ->
@@ -149,26 +152,27 @@ class PostgreSqlPerformanceTest {
             )
         }
 
-        // Measure time for upsert
-        val upsertTime = measureTimeMillis {
-            performanceTestRepository.upsertAll(updatedEntities)
-        }
-
-        // Clear the table and reinsert initial entities
-        jdbcTemplate.execute("DELETE FROM performance_test_entity")
-        performanceTestRepository.saveAll(initialEntities)
-
-        // Measure time for saveAll
-        val saveAllTime = measureTimeMillis {
-            performanceTestRepository.saveAll(updatedEntities)
-        }
-
-        // Log the results
-        logger.info("Update performance test with $size entities:")
-        logger.info("  Upsert time: $upsertTime ms")
-        logger.info("  SaveAll time: $saveAllTime ms")
-        logger.info("  Difference: ${upsertTime - saveAllTime} ms")
-        logger.info("  Ratio: ${upsertTime.toDouble() / saveAllTime.toDouble()}")
+        // Run the performance test
+        PerformanceTestUtils.runPerformanceTest(
+            testName = "Update Performance",
+            databaseType = "PostgreSQL",
+            entityCount = size,
+            repetitions = 10,
+            logger = logger,
+            setupFn = {
+                // Insert initial entities
+                performanceTestRepository.saveAll(initialEntities)
+            },
+            upsertFn = {
+                performanceTestRepository.upsertAll(updatedEntities)
+            },
+            saveAllFn = {
+                performanceTestRepository.saveAll(updatedEntities)
+            },
+            cleanupFn = {
+                jdbcTemplate.execute("DELETE FROM performance_test_entity")
+            }
+        )
     }
 
     /**
@@ -177,34 +181,36 @@ class PostgreSqlPerformanceTest {
     @ParameterizedTest
     @ValueSource(ints = [10, 100, 1000])
     fun `test mixed insert-update performance - upsert vs saveAll`(size: Int) {
-        // Generate and insert half of the entities
+        // Calculate half size
         val halfSize = size / 2
+
+        // Generate initial entities (half of the total)
         val initialEntities = generateEntities(halfSize)
-        performanceTestRepository.saveAll(initialEntities)
 
         // Generate a mix of new and updated entities
         val mixedEntities = generateEntities(halfSize) + generateEntities(halfSize, halfSize + 1L)
 
-        // Measure time for upsert
-        val upsertTime = measureTimeMillis {
-            performanceTestRepository.upsertAll(mixedEntities)
-        }
-
-        // Clear the table and reinsert initial entities
-        jdbcTemplate.execute("DELETE FROM performance_test_entity")
-        performanceTestRepository.saveAll(initialEntities)
-
-        // Measure time for saveAll
-        val saveAllTime = measureTimeMillis {
-            performanceTestRepository.saveAll(mixedEntities)
-        }
-
-        // Log the results
-        logger.info("Mixed insert-update performance test with $size entities:")
-        logger.info("  Upsert time: $upsertTime ms")
-        logger.info("  SaveAll time: $saveAllTime ms")
-        logger.info("  Difference: ${upsertTime - saveAllTime} ms")
-        logger.info("  Ratio: ${upsertTime.toDouble() / saveAllTime.toDouble()}")
+        // Run the performance test
+        PerformanceTestUtils.runPerformanceTest(
+            testName = "Mixed Insert-Update Performance",
+            databaseType = "PostgreSQL",
+            entityCount = size,
+            repetitions = 10,
+            logger = logger,
+            setupFn = {
+                // Insert initial entities (half of the total)
+                performanceTestRepository.saveAll(initialEntities)
+            },
+            upsertFn = {
+                performanceTestRepository.upsertAll(mixedEntities)
+            },
+            saveAllFn = {
+                performanceTestRepository.saveAll(mixedEntities)
+            },
+            cleanupFn = {
+                jdbcTemplate.execute("DELETE FROM performance_test_entity")
+            }
+        )
     }
 
     /**
@@ -216,35 +222,34 @@ class PostgreSqlPerformanceTest {
         val entities = generateEntities(totalSize)
 
         // Test different batch sizes
-        val batchSizes = listOf(1, 10, 50, 100, 200, 500, 1000)
+        val batchSizes = listOf(10, 50, 100, 200, 500, 1000)
 
         for (batchSize in batchSizes) {
-            // Clear the table
-            jdbcTemplate.execute("DELETE FROM performance_test_entity")
-
-            // Measure time for upsert with the current batch size
-            val upsertTime = measureTimeMillis {
-                entities.chunked(batchSize).forEach { batch ->
-                    performanceTestRepository.upsertAll(batch)
+            // Run the performance test for this batch size
+            PerformanceTestUtils.runPerformanceTest(
+                testName = "Batch Size Performance",
+                databaseType = "PostgreSQL",
+                entityCount = totalSize,
+                batchSize = batchSize,
+                repetitions = 10,
+                logger = logger,
+                setupFn = {
+                    // No setup needed
+                },
+                upsertFn = {
+                    entities.chunked(batchSize).forEach { batch ->
+                        performanceTestRepository.upsertAll(batch)
+                    }
+                },
+                saveAllFn = {
+                    entities.chunked(batchSize).forEach { batch ->
+                        performanceTestRepository.saveAll(batch)
+                    }
+                },
+                cleanupFn = {
+                    jdbcTemplate.execute("DELETE FROM performance_test_entity")
                 }
-            }
-
-            // Clear the table
-            jdbcTemplate.execute("DELETE FROM performance_test_entity")
-
-            // Measure time for saveAll with the current batch size
-            val saveAllTime = measureTimeMillis {
-                entities.chunked(batchSize).forEach { batch ->
-                    performanceTestRepository.saveAll(batch)
-                }
-            }
-
-            // Log the results
-            logger.info("Batch size performance test with batch size $batchSize:")
-            logger.info("  Upsert time: $upsertTime ms")
-            logger.info("  SaveAll time: $saveAllTime ms")
-            logger.info("  Difference: ${upsertTime - saveAllTime} ms")
-            logger.info("  Ratio: ${upsertTime.toDouble() / saveAllTime.toDouble()}")
+            )
         }
     }
 }

@@ -32,6 +32,11 @@ all correct and functional.
 
 This is particularly useful when you don't know whether a record exists and want to ensure it's created or updated in a single operation.
 
+It also generally performs better than separate insert and update operations, especially when
+dealing with large datasets. For data based comparisons please see
+the [Performance Testing](PERFORMANCE-TESTING.md) document and
+the [Performance Report](PERFORMANCE-REPORT.md).
+
 ## Database Support
 
 This library supports the following databases:
