@@ -199,7 +199,7 @@ This library is available on Maven Central. You can add it to your project using
 
 ```kotlin
 dependencies {
-    implementation("io.github.mpecan:upsert:1.0.1")
+    implementation("io.github.mpecan:upsert:1.1.0")
 }
 ```
 
@@ -207,7 +207,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'io.github.mpecan:upsert:1.0.1'
+    implementation 'io.github.mpecan:upsert:1.1.0'
 }
 ```
 
@@ -218,7 +218,7 @@ dependencies {
 <dependency>
   <groupId>io.github.mpecan</groupId>
   <artifactId>upsert</artifactId>
-  <version>1.0.1</version>
+  <version>1.1.0</version>
 </dependency>
 ```
 
