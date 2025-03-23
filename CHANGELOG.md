@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.0](https://github.com/mpecan/upsert/compare/v1.0.1...v1.1.0) (2025-03-23)
+
+
+### Features
+
+* add auto-configuration for Upsert functionality and update performance report formatting ([#30](https://github.com/mpecan/upsert/issues/30)) ([f703b6c](https://github.com/mpecan/upsert/commit/f703b6c1bb331a1de8ed3f4aeaf38916718626f2))
+* add performance tests for upsert operations in MySQL and PostgreSQL ([#27](https://github.com/mpecan/upsert/issues/27)) ([bbb0593](https://github.com/mpecan/upsert/commit/bbb0593c3d8060391801c1941ec35098f8d5bb69))
+* implement performance testing framework for upsert operations in MySQL and PostgreSQL ([#29](https://github.com/mpecan/upsert/issues/29)) ([e55ef63](https://github.com/mpecan/upsert/commit/e55ef6388d5b48cfc99ae6e6403998ee095894e5))
+
 ## [1.0.1](https://github.com/mpecan/upsert/compare/v1.0.0...v1.0.1) (2025-03-21)
 
 
