@@ -3,9 +3,6 @@ package io.github.mpecan.upsert.type
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
 import java.lang.reflect.Field
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 
 /**
  * Default implementation of TypeMapper.
@@ -50,9 +47,6 @@ class DefaultTypeMapper : TypeMapper {
 
         return when (value) {
             is Enum<*> -> value.name
-            is LocalDate -> java.sql.Date.valueOf(value)
-            is LocalDateTime -> java.sql.Timestamp.valueOf(value)
-            is LocalTime -> java.sql.Time.valueOf(value)
             else -> value
         }
     }
