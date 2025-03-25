@@ -142,6 +142,231 @@ class AppConfig {
 
 This is no longer necessary as the library now uses Spring Boot's auto-configuration mechanism.
 
+# Type Mapping System
+
+The type mapping system provides a centralized, extensible way to handle Java/Kotlin to SQL type
+conversions in the upsert library.
+
+## Overview
+
+The system consists of:
+
+1. `TypeMapper` interface - Defines how Java/Kotlin types are mapped to SQL types
+2. `TypeMapperRegistry` - Central registry for type mappers
+3. `DefaultTypeMapper` - Handles common types
+4. `TypeMapperBuilder` - Helper for creating custom type mappers
+
+## Usage
+
+### Default Behavior
+
+The library comes with support for common Java/Kotlin types out of the box. You don't need to do
+anything to use these mappings.
+
+### Registering Custom Type Mappers
+
+To add support for custom types, register a type mapper:
+
+```kotlin
+// Register a mapper for a custom JSON type
+registerTypeMapper {
+    addType(MyJsonType::class, Types.VARCHAR) { jsonObject ->
+        objectMapper.writeValueAsString(jsonObject)
+    }
+}
+```
+
+### Creating a Custom Type Mapper for a Library
+
+If you're creating a library that extends the upsert library with additional type support:
+
+```kotlin
+// In your library's initialization code
+class MyLibraryConfiguration {
+    fun initialize() {
+        val myCustomTypeMapper = TypeMapperBuilder()
+            .addType(MyCustomType::class.java, Types.OTHER) { value ->
+                // Convert MyCustomType to a JDBC-compatible value
+                convertMyType(value)
+            }
+            .build()
+
+        TypeMapperRegistry.register(myCustomTypeMapper)
+    }
+}
+```
+
+# JSON Mapping in Upsert Library
+
+This document explains how to use the JSON mapping capabilities in your application.
+
+## Including the Dependencies
+
+To use the JSON mapping capabilities, you need to include at least one JSON library in your project.
+
+### Gradle
+
+Add one of the following dependencies to your `build.gradle` or `build.gradle.kts`:
+
+```kotlin
+// Option 1: Jackson (preferred)
+implementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2") // If using Kotlin
+
+// Option 2: Gson
+implementation("com.google.code.gson:gson:2.10.1")
+
+// Option 3: JSON-B
+implementation("jakarta.json.bind:jakarta.json.bind-api:3.0.0")
+implementation("org.eclipse:yasson:3.0.3") // JSON-B implementation
+```
+
+### Maven
+
+Add one of the following dependencies to your `pom.xml`:
+
+```xml
+<!-- Option 1: Jackson (preferred) -->
+<dependency>
+  <groupId>com.fasterxml.jackson.core</groupId>
+  <artifactId>jackson-databind</artifactId>
+  <version>2.15.2</version>
+</dependency>
+<dependency>
+<groupId>com.fasterxml.jackson.module</groupId>
+<artifactId>jackson-module-kotlin</artifactId>
+<version>2.15.2</version>
+</dependency>
+
+  <!-- Option 2: Gson -->
+<dependency>
+<groupId>com.google.code.gson</groupId>
+<artifactId>gson</artifactId>
+<version>2.10.1</version>
+</dependency>
+
+  <!-- Option 3: JSON-B -->
+<dependency>
+<groupId>jakarta.json.bind</groupId>
+<artifactId>jakarta.json.bind-api</artifactId>
+<version>3.0.0</version>
+</dependency>
+<dependency>
+<groupId>org.eclipse</groupId>
+<artifactId>yasson</artifactId>
+<version>3.0.3</version>
+</dependency>
+```
+
+## Using JSON Mapping
+
+Once you've included a JSON library, the library will automatically configure the appropriate JSON
+mapper. You can then use JSON mapping in your entity classes:
+
+```kotlin
+@Entity
+@Table(name = "product")
+data class Product(
+    @Id
+    val id: Long,
+
+    // Option 1: Explicit JSON column definition
+    @Column(columnDefinition = "jsonb") // or "json"
+    val attributes: Map<String, String>,
+
+    // Option 2: Automatic detection of common JSON types
+    val tags: List<String>,
+
+    // Option 3: Custom classes
+    val metadata: ProductMetadata
+)
+
+data class ProductMetadata(
+    val manufacturer: String,
+    val countryOfOrigin: String
+)
+```
+
+## Testing
+
+For testing, it's recommended to include Jackson in your test dependencies:
+
+```kotlin
+// Gradle
+testImplementation("com.fasterxml.jackson.core:jackson-databind:2.15.2")
+testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
+```
+
+```xml
+<!-- Maven -->
+<dependency>
+  <groupId>com.fasterxml.jackson.core</groupId>
+  <artifactId>jackson-databind</artifactId>
+  <version>2.15.2</version>
+  <scope>test</scope>
+</dependency>
+<dependency>
+<groupId>com.fasterxml.jackson.module</groupId>
+<artifactId>jackson-module-kotlin</artifactId>
+<version>2.15.2</version>
+<scope>test</scope>
+</dependency>
+```
+
+## Library Priority
+
+The library automatically selects a JSON mapper in the following order:
+
+1. Jackson
+2. Gson
+3. JSON-B
+
+If multiple libraries are present, the highest priority one will be used.
+
+## Custom JSON Mappers
+
+If you need custom JSON serialization, you can provide your own `JsonTypeMapper` implementation:
+
+```kotlin
+@Component
+@Primary // To override the default mapper
+class MyCustomJsonTypeMapper : AbstractJsonTypeMapper() {
+    override fun toJson(value: Any): String {
+        // Your custom JSON serialization logic here
+        return "..."
+    }
+}
+```
+
+## How It Works
+
+When the library needs to determine a SQL type for a field or value:
+
+1. It asks the `TypeMapperRegistry` for the appropriate type mapper
+2. The registry checks all registered mappers to find one that can handle the type
+3. The mapper determines the SQL type and any necessary value conversion
+
+For JPA-annotated fields with `@Convert` annotations, the system:
+
+1. Detects the converter class
+2. Determines the target SQL type based on the converter's output type
+3. Uses the converter to transform values when needed
+
+## Extension Points
+
+You can extend the type mapping system in several ways:
+
+1. Register a custom mapper for specific types
+2. Create a new `TypeMapper` implementation for complex type handling
+3. Override the default mapper for specific types
+
+## Best Practices
+
+1. Register type mappers during application startup
+2. Use the `TypeMapperBuilder` for simple type mappings
+3. Implement the `TypeMapper` interface directly for complex cases
+4. Test your type mappers with a variety of input values
+
 ## Implementation Details
 
 ### How It Works

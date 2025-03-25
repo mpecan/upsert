@@ -4,6 +4,7 @@ import io.github.mpecan.upsert.dialect.UpsertDialect
 import io.github.mpecan.upsert.dialect.UpsertDialectFactory
 import io.github.mpecan.upsert.repository.UpsertRepository
 import io.github.mpecan.upsert.repository.UpsertRepositoryFactory
+import io.github.mpecan.upsert.type.TypeMapperRegistry
 import jakarta.persistence.EntityManager
 import org.springframework.boot.autoconfigure.AutoConfiguration
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
@@ -34,8 +35,11 @@ class UpsertAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    fun upsertDialectFactory(dataSource: DataSource): UpsertDialectFactory {
-        return UpsertDialectFactory(dataSource)
+    fun upsertDialectFactory(
+        dataSource: DataSource,
+        typeMapperRegistry: TypeMapperRegistry
+    ): UpsertDialectFactory {
+        return UpsertDialectFactory(dataSource, typeMapperRegistry)
     }
 
     @Bean
@@ -57,8 +61,15 @@ class UpsertAutoConfiguration {
         entityManager: EntityManager,
         applicationContext: ApplicationContext,
         dataSource: DataSource,
-        jdbcTemplate: NamedParameterJdbcTemplate
+        jdbcTemplate: NamedParameterJdbcTemplate,
+        typeMapperRegistry: TypeMapperRegistry
     ): JpaRepositoryFactory {
-        return UpsertRepositoryFactory(entityManager, applicationContext, dataSource, jdbcTemplate)
+        return UpsertRepositoryFactory(
+            entityManager,
+            applicationContext,
+            dataSource,
+            jdbcTemplate,
+            typeMapperRegistry
+        )
     }
 }

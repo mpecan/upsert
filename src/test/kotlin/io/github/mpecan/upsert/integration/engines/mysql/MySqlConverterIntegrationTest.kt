@@ -23,4 +23,19 @@ class MySqlConverterIntegrationTest : AbstractConverterIntegrationTest() {
             registry.add("spring.jpa.database-platform") { "org.hibernate.dialect.MySQL8Dialect" }
         }
     }
+
+    override fun setupTables() {
+        jdbcTemplate.execute(
+            """
+            CREATE TABLE IF NOT EXISTS test_json_entity (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL UNIQUE ,
+                attributes JSON,
+                tags JSON,
+                metadata JSON,
+                created_at TIMESTAMP
+            )
+        """
+        )
+    }
 }

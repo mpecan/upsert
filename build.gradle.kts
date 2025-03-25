@@ -36,6 +36,12 @@ dependencies {
     runtimeOnly("org.xerial:sqlite-jdbc:3.49.1.0")
     runtimeOnly("org.hibernate.orm:hibernate-community-dialects")
 
+    compileOnly("com.fasterxml.jackson.core:jackson-databind")
+    compileOnly("com.fasterxml.jackson.module:jackson-module-kotlin")
+    compileOnly("com.google.code.gson:gson")
+    compileOnly("jakarta.json.bind:jakarta.json.bind-api")
+    compileOnly("org.eclipse:yasson") // JSON-B implementation
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
@@ -47,6 +53,13 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:mysql")
+
+    // Testing of the JSON type mappers
+    testImplementation("com.fasterxml.jackson.core:jackson-databind")
+    testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    testImplementation("com.google.code.gson:gson")
+    testImplementation("jakarta.json.bind:jakarta.json.bind-api")
+    testImplementation("org.eclipse:yasson") // JSON-B implementation
 }
 
 kotlin {

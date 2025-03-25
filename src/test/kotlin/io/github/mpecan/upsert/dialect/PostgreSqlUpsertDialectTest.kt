@@ -1,6 +1,7 @@
 package io.github.mpecan.upsert.dialect
 
 import io.github.mpecan.upsert.model.ColumnInfo
+import io.github.mpecan.upsert.type.TypeMapperRegistry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -9,7 +10,8 @@ import org.junit.jupiter.api.Test
  */
 class PostgreSqlUpsertDialectTest {
 
-    private val dialect = PostgreSqlUpsertDialect()
+    private val typeMapperRegistry = TypeMapperRegistry(testTypeProvider())
+    private val dialect = PostgreSqlUpsertDialect(typeMapperRegistry)
 
     @Test
     fun `should generate correct upsert SQL for PostgreSQL`() {

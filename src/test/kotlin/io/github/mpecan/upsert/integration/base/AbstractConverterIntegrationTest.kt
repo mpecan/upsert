@@ -4,6 +4,10 @@ import io.github.mpecan.upsert.entity.JpaTestEntityWithConverter
 import io.github.mpecan.upsert.entity.JsonData
 import io.github.mpecan.upsert.integration.TestApplication
 import io.github.mpecan.upsert.integration.repositories.JpaTestEntityWithConverterRepository
+import io.github.mpecan.upsert.integration.repositories.TestJsonEntityRepository
+import io.github.mpecan.upsert.type.json.test.TestJsonEntity
+import io.github.mpecan.upsert.type.json.test.TestMetadata
+import io.github.mpecan.upsert.type.json.test.TestNestedData
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -14,6 +18,10 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.sql.ResultSet
+import java.time.LocalDateTime
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * Abstract integration tests for upsert operations with custom converters.
@@ -28,6 +36,9 @@ abstract class AbstractConverterIntegrationTest {
     protected lateinit var jpaTestEntityWithConverterRepository: JpaTestEntityWithConverterRepository
 
     @Autowired
+    protected lateinit var jsonTestEntityRepository: TestJsonEntityRepository
+
+    @Autowired
     protected lateinit var jdbcTemplate: JdbcTemplate
 
     @BeforeEach
@@ -35,12 +46,15 @@ abstract class AbstractConverterIntegrationTest {
         try {
             // Clear the tables before each test
             jdbcTemplate.execute("DELETE FROM jpa_test_entity_with_converter")
+            setupTables()
             logger.info("Tables cleared successfully")
         } catch (e: Exception) {
             logger.error("Error clearing tables", e)
             throw e
         }
     }
+
+    abstract fun setupTables()
 
     @Test
     fun `test upsert with custom converter`() {
@@ -118,6 +132,81 @@ abstract class AbstractConverterIntegrationTest {
         Assertions.assertEquals("updated-key", storedEntity?.jsonData?.key)
         Assertions.assertEquals("updated-value", storedEntity?.jsonData?.value)
         Assertions.assertEquals(false, storedEntity?.active)
+    }
+
+    @Test
+    fun testUpsertEntityWithJsonFields() {
+        // Create test entity with JSON fields
+        val entity = TestJsonEntity(
+            name = "Test JSON Entity",
+            attributes = mapOf("key1" to "value1", "key2" to "value2"),
+            tags = listOf("tag1", "tag2", "tag3"),
+            metadata = TestMetadata(
+                version = "1.0.0",
+                description = "Test metadata",
+                active = true,
+                settings = mapOf("setting1" to "value1"),
+                scores = listOf(10, 20, 30),
+                nested = TestNestedData("nested1", 42.5)
+            ),
+            createdAt = LocalDateTime.now()
+        )
+
+        // Upsert the entity
+        val savedEntity = jsonTestEntityRepository.upsert(entity)
+
+        // Verify entity was saved
+        assertNotNull(savedEntity.id)
+
+        // Query the database directly to verify JSON was stored correctly
+        val dbRow = jdbcTemplate.queryForMap(
+            "SELECT * FROM test_json_entity WHERE id = ?",
+            savedEntity.id
+        )
+
+        // Verify the data
+        assertEquals("Test JSON Entity", dbRow["name"])
+
+        // Verify JSON fields were saved as JSON
+        val attributesJson = dbRow["attributes"].toString()
+        assertTrue(attributesJson.contains("key1"))
+        assertTrue(attributesJson.contains("value1"))
+
+        val tagsJson = dbRow["tags"].toString()
+        assertTrue(tagsJson.contains("tag1"))
+
+        val metadataJson = dbRow["metadata"].toString()
+        assertTrue(metadataJson.contains("version"))
+        assertTrue(metadataJson.contains("1.0.0"))
+        assertTrue(metadataJson.contains("nested"))
+
+        // Update the entity
+        val updatedMetadata = savedEntity.metadata.copy(
+            version = "1.1.0",
+            settings = mapOf("setting1" to "updated", "setting2" to "new value")
+        )
+        val updatedEntity = savedEntity.copy(
+            metadata = updatedMetadata,
+            tags = savedEntity.tags + "tag4"
+        )
+
+        // Upsert the updated entity
+        val reUpdatedEntity = jsonTestEntityRepository.upsert(updatedEntity)
+
+        // Query the database again
+        val updatedDbRow = jdbcTemplate.queryForMap(
+            "SELECT * FROM test_json_entity WHERE id = ?",
+            reUpdatedEntity.id!!
+        )
+
+        // Verify updates were saved
+        val updatedMetadataJson = updatedDbRow["metadata"].toString()
+        assertTrue(updatedMetadataJson.contains("1.1.0"))
+        assertTrue(updatedMetadataJson.contains("setting2"))
+        assertTrue(updatedMetadataJson.contains("new value"))
+
+        val updatedTagsJson = updatedDbRow["tags"].toString()
+        assertTrue(updatedTagsJson.contains("tag4"))
     }
 
     private fun entityRowMapper(): RowMapper<JpaTestEntityWithConverter> {

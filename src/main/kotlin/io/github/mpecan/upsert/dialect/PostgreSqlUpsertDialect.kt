@@ -3,15 +3,17 @@ package io.github.mpecan.upsert.dialect
 import io.github.mpecan.upsert.bean.ExtendedBeanPropertySqlParameterSource
 import io.github.mpecan.upsert.model.ColumnInfo
 import io.github.mpecan.upsert.model.UpsertModel
+import io.github.mpecan.upsert.type.TypeMapperRegistry
 import org.springframework.beans.PropertyAccessorFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.support.GeneratedKeyHolder
+import java.sql.Types
 
 /**
  * PostgreSQL implementation of the UpsertDialect interface.
  * Uses the "INSERT ... ON CONFLICT ... DO UPDATE" syntax for upsert operations.
  */
-class PostgreSqlUpsertDialect : UpsertDialect {
+class PostgreSqlUpsertDialect(private val typeMapperRegistry: TypeMapperRegistry) : UpsertDialect {
     /**
      * Generate a batch upsert SQL statement for PostgreSQL.
      * Uses the "INSERT ... VALUES (...) ON CONFLICT ... DO UPDATE" syntax.
@@ -67,7 +69,7 @@ class PostgreSqlUpsertDialect : UpsertDialect {
 
         // Create parameter sources for entities with IDs
         val paramSources = entities.map { entity ->
-            entity to ExtendedBeanPropertySqlParameterSource(entity)
+            entity to ExtendedBeanPropertySqlParameterSource(entity, typeMapperRegistry)
         }
         // Find ID columns
         val idColumns = upsertInstance.onColumns.filter { it.generated }
@@ -150,5 +152,9 @@ class PostgreSqlUpsertDialect : UpsertDialect {
                 }
             }
         }
+    }
+
+    override fun getJsonType(): Int {
+        return Types.OTHER
     }
 }

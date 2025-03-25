@@ -1,15 +1,19 @@
 package io.github.mpecan.upsert.dialect
 
 import io.github.mpecan.upsert.model.ColumnInfo
+import io.github.mpecan.upsert.type.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.ObjectProvider
 
 /**
  * Unit tests for MySqlUpsertDialect.
  */
 class MySqlUpsertDialectTest {
 
-    private val dialect = MySqlUpsertDialect()
+
+    private val typeMapperRegistry = TypeMapperRegistry(testTypeProvider())
+    private val dialect = MySqlUpsertDialect(typeMapperRegistry)
 
     @Test
     fun `should generate correct upsert SQL for MySQL`() {
@@ -54,5 +58,16 @@ class MySqlUpsertDialectTest {
             "INSERT INTO test_table (id, code, name, description, active) VALUES (:id_1, :code_1, :name_1, :description_1, :active_1) " +
                     "ON DUPLICATE KEY UPDATE name = VALUES(name), description = VALUES(description), active = VALUES(active)"
         assertEquals(expectedSql, sql)
+    }
+}
+
+fun testTypeProvider(vararg mappers: TypeMapper) = object : ObjectProvider<List<TypeMapper>> {
+    override fun getObject(): List<TypeMapper> {
+        return listOf(
+            *mappers,
+            NamedEnumTypeMapper(),
+            EnumTypeMapper(),
+            DefaultTypeMapper()
+        )
     }
 }

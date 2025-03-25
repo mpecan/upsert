@@ -1,12 +1,16 @@
 package io.github.mpecan.upsert.dialect
 
+import io.github.mpecan.upsert.type.TypeMapperRegistry
 import java.sql.Connection
 import javax.sql.DataSource
 
 /**
  * Factory for creating the appropriate UpsertDialect based on the database being used.
  */
-class UpsertDialectFactory(private val dataSource: DataSource) {
+class UpsertDialectFactory(
+    private val dataSource: DataSource,
+    private val typeMapperRegistry: TypeMapperRegistry
+) {
 
     /**
      * Get the appropriate UpsertDialect for the current database.
@@ -16,8 +20,8 @@ class UpsertDialectFactory(private val dataSource: DataSource) {
     fun getDialect(): UpsertDialect {
         return dataSource.connection.use { connection ->
             when (getDatabaseType(connection)) {
-                DatabaseType.POSTGRESQL -> PostgreSqlUpsertDialect()
-                DatabaseType.MYSQL -> MySqlUpsertDialect()
+                DatabaseType.POSTGRESQL -> PostgreSqlUpsertDialect(typeMapperRegistry)
+                DatabaseType.MYSQL -> MySqlUpsertDialect(typeMapperRegistry)
                 else -> throw UnsupportedOperationException("Unsupported database type")
             }
         }
