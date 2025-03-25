@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.0](https://github.com/mpecan/upsert/compare/v1.1.0...v1.2.0) (2025-03-25)
+
+
+### Features
+
+* type mappers and json ([#36](https://github.com/mpecan/upsert/issues/36)) ([80bcdea](https://github.com/mpecan/upsert/commit/80bcdea8d6e9589312cca6c927af9a4ff121f00e))
+
+
+### Bug Fixes
+
+* **deps:** update dependency org.xerial:sqlite-jdbc to v3.49.1.0 ([#34](https://github.com/mpecan/upsert/issues/34)) ([359efe6](https://github.com/mpecan/upsert/commit/359efe63482efd494392b43cec4acf0baa3932fb))
+
+
+### Documentation
+
+* update version in README.md to 1.1.0 ([#32](https://github.com/mpecan/upsert/issues/32)) ([ea9e4f6](https://github.com/mpecan/upsert/commit/ea9e4f642ca02c252475448ec6929f2f36ccab73))
+
 ## [1.1.0](https://github.com/mpecan/upsert/compare/v1.0.1...v1.1.0) (2025-03-23)
 
 
