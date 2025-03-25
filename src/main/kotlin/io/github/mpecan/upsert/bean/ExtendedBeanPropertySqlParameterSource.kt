@@ -17,11 +17,8 @@ open class ExtendedBeanPropertySqlParameterSource(
     private val typeMapperRegistry: TypeMapperRegistry
 ) : BeanPropertySqlParameterSource(bean) {
 
-    // The bean being wrapped
-    private val beanInstance = bean
-
     // Cache for fields by parameter name
-    private val fieldCache = mutableMapOf<String, Field?>()
+    private val fieldCache = getFields(bean)
 
     // Cache for converter instances by converter class
     private val converterCache = mutableMapOf<Class<*>, AttributeConverter<Any, Any>>()
@@ -84,21 +81,23 @@ open class ExtendedBeanPropertySqlParameterSource(
         } ?: value
     }
 
-    private fun <T : Any> withField(paramName: String, consumer: (Field) -> T?) =
-        fieldCache.getOrPut(paramName) {
-            try {
-                val beanClass = beanInstance.javaClass
-                val field = beanClass.getDeclaredField(paramName)
-                field.isAccessible = true
-                field
-            } catch (e: Exception) {
-                null
-            }
-        }.let {
+    private inline fun <T : Any> withField(paramName: String, consumer: (Field) -> T?): T? {
+        return fieldCache.get(paramName).let {
             try {
                 if (it != null) consumer(it) else null
             } catch (e: Exception) {
                 null
             }
         }
+    }
+
+    companion object {
+        val typeFieldCache = mutableMapOf<Class<*>, Map<String, Field>>()
+
+        fun getFields(bean: Any): Map<String, Field> {
+            return typeFieldCache.getOrPut(bean.javaClass) {
+                bean.javaClass.declaredFields.associateBy { it.name }
+            }
+        }
+    }
 }
