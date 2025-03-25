@@ -1,5 +1,6 @@
 package io.github.mpecan.upsert.repository
 
+import io.github.mpecan.upsert.type.TypeMapperRegistry
 import jakarta.persistence.EntityManager
 import org.springframework.context.ApplicationContext
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactoryBean
@@ -22,6 +23,7 @@ class UpsertRepositoryFactoryBean<T : Repository<S, ID>, S : Any, ID : Serializa
     private val applicationContext: ApplicationContext,
     private val dataSource: DataSource,
     private val jdbcTemplate: NamedParameterJdbcTemplate,
+    private val typeMapperRegistry: TypeMapperRegistry
 ) : JpaRepositoryFactoryBean<T, S, ID>(repositoryInterface) {
 
     override fun createRepositoryFactory(entityManager: EntityManager): RepositoryFactorySupport {
@@ -29,7 +31,8 @@ class UpsertRepositoryFactoryBean<T : Repository<S, ID>, S : Any, ID : Serializa
             entityManager,
             applicationContext,
             dataSource,
-            jdbcTemplate
+            jdbcTemplate,
+            typeMapperRegistry
         )
     }
 }

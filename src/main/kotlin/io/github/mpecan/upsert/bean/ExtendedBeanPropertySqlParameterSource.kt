@@ -1,31 +1,24 @@
 package io.github.mpecan.upsert.bean
 
+import io.github.mpecan.upsert.type.TypeMapper
+import io.github.mpecan.upsert.type.TypeMapperRegistry
 import jakarta.persistence.AttributeConverter
 import jakarta.persistence.Convert
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource
 import java.lang.reflect.Field
-import java.sql.Types
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.util.*
 
 /**
  * Extension of BeanPropertySqlParameterSource that supports additional types.
  * This class allows us to reuse Spring's existing infrastructure for parameter binding
- * while adding support for additional types that might be used in our entities.
- *
- * This implementation adds support for:
- * - JPA custom converters (@Convert annotation)
- * - Fields that should be serialized as JSON
+ * while adding support for additional types and JPA converters.
  */
-open class ExtendedBeanPropertySqlParameterSource(bean: Any) : BeanPropertySqlParameterSource(bean) {
-
-    // The bean being wrapped
-    private val beanInstance = bean
+open class ExtendedBeanPropertySqlParameterSource(
+    bean: Any,
+    private val typeMapperRegistry: TypeMapperRegistry
+) : BeanPropertySqlParameterSource(bean) {
 
     // Cache for fields by parameter name
-    private val fieldCache = mutableMapOf<String, Field?>()
+    private val fieldCache = getFields(bean)
 
     // Cache for converter instances by converter class
     private val converterCache = mutableMapOf<Class<*>, AttributeConverter<Any, Any>>()
@@ -35,150 +28,76 @@ open class ExtendedBeanPropertySqlParameterSource(bean: Any) : BeanPropertySqlPa
 
     /**
      * Override getSqlType to provide SQL types for additional Java/Kotlin types.
-     * This method is called by Spring's JdbcTemplate to determine the SQL type of a parameter.
-     * Uses caches to avoid repeated reflection.
+     * This method delegates to the TypeMapperRegistry to determine the SQL type.
      *
      * @param paramName The name of the parameter
      * @return The SQL type as defined in java.sql.Types
      */
     override fun getSqlType(paramName: String): Int {
         // Try to find the field in the bean class
-        try {
-            // Get the field from cache or find it
-            val field = fieldCache.getOrPut(paramName) {
-                try {
-                    val beanClass = beanInstance.javaClass
-                    val field = beanClass.getDeclaredField(paramName)
-                    field.isAccessible = true
-                    field
-                } catch (e: Exception) {
-                    null
-                }
-            }
-
-            if (field != null) {
-                // Check if the field has a @Convert annotation (from cache)
-                val convertAnnotation = convertAnnotationCache.getOrPut(field) {
-                    field.getAnnotation(Convert::class.java)
-                }
-
-                if (convertAnnotation != null) {
-                    // Get the converter class
-                    val converterClass = convertAnnotation.converter.java
-
-                    // Get or create the converter instance
-                    val typedConverter = converterCache.getOrPut(converterClass) {
-                        @Suppress("UNCHECKED_CAST")
-                        converterClass.getDeclaredConstructor().newInstance() as AttributeConverter<Any, Any>
-                    }
-
-                    // Get the value
-                    val value = super.getValue(paramName)
-
-                    // If the value is null, we can't determine the type from it
-                    if (value != null) {
-                        // Apply the converter to the value
-                        val convertedValue = typedConverter.convertToDatabaseColumn(value)
-
-                        // Determine the SQL type based on the converted value
-                        return getSqlTypeForValue(convertedValue)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            // If any exception occurs, fall back to default type determination
-        }
-
-        // Fall back to determining the type based on the value
-        val value = getValue(paramName)
-        return getSqlTypeForValue(value)
-    }
-
-    /**
-     * Determine the SQL type for a value.
-     *
-     * @param value The value
-     * @return The SQL type as defined in java.sql.Types
-     */
-    private fun getSqlTypeForValue(value: Any?): Int {
-        return when (value) {
-            // Handle additional types here
-            is LocalDate -> Types.DATE
-            is LocalDateTime -> Types.TIMESTAMP
-            is LocalTime -> Types.TIME
-            is UUID -> Types.VARCHAR
-            is Enum<*> -> Types.VARCHAR
-            is String -> Types.VARCHAR
-            is Int, is Short, is Byte -> Types.INTEGER
-            is Long -> Types.BIGINT
-            is Float, is Double -> Types.DOUBLE
-            is Boolean -> Types.BOOLEAN
-            // Add more type mappings as needed
-            null -> Types.NULL
-            else -> Types.OTHER
-        }
+        // Get the field from cache or find it
+        return withField(paramName) { field ->
+            // Use the injected registry if available, otherwise use the static methods
+            typeMapperRegistry.getSqlTypeForField(field)
+        } ?: return TypeMapper.getSqlTypeForValue(getValue(paramName))
     }
 
     /**
      * Override getValue to handle additional types that might need special conversion.
-     * This method is called by Spring's JdbcTemplate to get the value of a parameter.
-     * Uses caches to avoid repeated reflection.
+     * This method delegates to the TypeMapperRegistry to convert values to JDBC-compatible types.
      *
      * @param paramName The name of the parameter
      * @return The value of the parameter, possibly converted to a type that JDBC can handle
      */
     override fun getValue(paramName: String): Any? {
-        val value = super.getValue(paramName)
+        // Get the value from the bean and handle null values
+        val value = super.getValue(paramName) ?: return null
 
-        // Handle null values
-        if (value == null) {
-            return null
-        }
-
-        // Try to find the field in the bean class
-        try {
-            // Get the field from cache or find it
-            val field = fieldCache.getOrPut(paramName) {
-                try {
-                    val beanClass = beanInstance.javaClass
-                    val field = beanClass.getDeclaredField(paramName)
-                    field.isAccessible = true
-                    field
-                } catch (e: Exception) {
-                    null
-                }
+        // Get the field from cache or find it
+        return withField(paramName) { field ->
+            // Check if the field has a @Convert annotation (from cache)
+            val convertAnnotation = convertAnnotationCache.getOrPut(field) {
+                field.getAnnotation(Convert::class.java)
             }
 
-            if (field != null) {
-                // Check if the field has a @Convert annotation (from cache)
-                val convertAnnotation = convertAnnotationCache.getOrPut(field) {
-                    field.getAnnotation(Convert::class.java)
+            if (convertAnnotation != null) {
+                // Get the converter class
+                val converterClass = convertAnnotation.converter.java
+
+                // Get or create the converter instance
+                val typedConverter = converterCache.getOrPut(converterClass) {
+                    @Suppress("UNCHECKED_CAST")
+                    converterClass.getDeclaredConstructor()
+                        .newInstance() as AttributeConverter<Any, Any>
                 }
 
-                if (convertAnnotation != null) {
-                    // Get the converter class
-                    val converterClass = convertAnnotation.converter.java
+                // Apply the converter to the value
+                typedConverter.convertToDatabaseColumn(value)
+            } else {
 
-                    // Get or create the converter instance
-                    val typedConverter = converterCache.getOrPut(converterClass) {
-                        @Suppress("UNCHECKED_CAST")
-                        converterClass.getDeclaredConstructor().newInstance() as AttributeConverter<Any, Any>
-                    }
-
-                    // Apply the converter to the value
-                    return typedConverter.convertToDatabaseColumn(value)
-                }
+                // Use the injected registry if available, otherwise use the static methods
+                typeMapperRegistry.convertToJdbcValue(value, field)
             }
-        } catch (e: Exception) {
-            // If any exception occurs, fall back to default conversion
-        }
+        } ?: value
+    }
 
-        // Apply default conversion for other types
-        return when (value) {
-            // Convert types that JDBC doesn't handle natively
-            is Enum<*> -> value.name
-            // Add more conversions as needed
-            else -> value
+    private inline fun <T : Any> withField(paramName: String, consumer: (Field) -> T?): T? {
+        return fieldCache.get(paramName).let {
+            try {
+                if (it != null) consumer(it) else null
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    companion object {
+        val typeFieldCache = mutableMapOf<Class<*>, Map<String, Field>>()
+
+        fun getFields(bean: Any): Map<String, Field> {
+            return typeFieldCache.getOrPut(bean.javaClass) {
+                bean.javaClass.declaredFields.associateBy { it.name }
+            }
         }
     }
 }

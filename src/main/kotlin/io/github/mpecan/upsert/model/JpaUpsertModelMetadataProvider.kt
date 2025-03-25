@@ -1,21 +1,22 @@
 package io.github.mpecan.upsert.model
 
+import io.github.mpecan.upsert.type.TypeMapperRegistry
 import jakarta.persistence.Column
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.PersistenceUnitUtil
 import jakarta.persistence.metamodel.Metamodel
 import org.springframework.data.jpa.repository.support.JpaEntityInformation
 import org.springframework.data.jpa.repository.support.JpaMetamodelEntityInformation
-import org.springframework.jdbc.core.StatementCreatorUtils
 
 /**
  * Implementation of UpsertModelMetadataProvider that uses JPA metadata.
- * This class encapsulates the parts of UpsertModel that are hard to mock in tests.
+ * This class extracts metadata from JPA entities for use in upsert operations.
  */
 class JpaUpsertModelMetadataProvider(
     metamodel: Metamodel,
     persistenceUnitUtil: PersistenceUnitUtil,
-    private val entityClass: Class<out Any>
+    private val entityClass: Class<out Any>,
+    private val typeMapperRegistry: TypeMapperRegistry
 ) : UpsertModelMetadataProvider {
 
     private val tableName: String
@@ -37,19 +38,21 @@ class JpaUpsertModelMetadataProvider(
 
         columns = entityMetadata.attributes.filter { it.isAssociation.not() }.map {
             val field = it.declaringType.javaType.getDeclaredField(it.name)
-            val isGenerated = field.annotations.any { it is GeneratedValue }
-            val sqlType =
-                StatementCreatorUtils.javaTypeToSqlParameterType(it.javaType)
+            val isGenerated = field.annotations.any { annotation -> annotation is GeneratedValue }
+
             val columnName = when {
-                field.annotations.any { it.javaClass == Column::class.java } -> {
+                field.annotations.any { annotation -> annotation.javaClass == Column::class.java } -> {
                     field.getAnnotation(Column::class.java).name
                 }
-
                 else -> {
-                    // get the column name from the field name and transform it to snake case
+                    // Get the column name from the field name and transform it to snake case
                     field.name.replace(Regex("([a-z])([A-Z]+)"), "$1_$2").lowercase()
                 }
             }
+
+            // Use the TypeMapperRegistry to get the SQL type
+            val sqlType = typeMapperRegistry.getSqlTypeForField(field)
+
             ColumnInfo(
                 columnName,
                 it.name,

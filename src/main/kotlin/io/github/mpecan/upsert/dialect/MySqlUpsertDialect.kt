@@ -4,15 +4,17 @@ import io.github.mpecan.upsert.bean.ExtendedBeanPropertySqlParameterSource
 import io.github.mpecan.upsert.bean.IndexedBeanPropertySqlParameterSource
 import io.github.mpecan.upsert.model.ColumnInfo
 import io.github.mpecan.upsert.model.UpsertModel
+import io.github.mpecan.upsert.type.TypeMapperRegistry
 import org.springframework.beans.PropertyAccessorFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.support.GeneratedKeyHolder
+import java.sql.Types
 
 /**
  * MySQL implementation of the UpsertDialect interface.
  * Uses the "INSERT ... ON DUPLICATE KEY UPDATE" syntax for upsert operations.
  */
-class MySqlUpsertDialect : UpsertDialect {
+class MySqlUpsertDialect(private val typeMapperRegistry: TypeMapperRegistry) : UpsertDialect {
 
     /**
      * Generate a batch upsert SQL statement for MySQL.
@@ -85,7 +87,7 @@ class MySqlUpsertDialect : UpsertDialect {
 
         // For MySQL, we need to create parameter sources with indexed names
         val allParamValues = entities.mapIndexed { index, entity ->
-            ExtendedBeanPropertySqlParameterSource(entity)
+            ExtendedBeanPropertySqlParameterSource(entity, typeMapperRegistry)
         }.let { IndexedBeanPropertySqlParameterSource(it) }
 
         val keyHolder = GeneratedKeyHolder()
@@ -133,5 +135,9 @@ class MySqlUpsertDialect : UpsertDialect {
         }
 
         return entities
+    }
+
+    override fun getJsonType(): Int {
+        return Types.VARCHAR
     }
 }

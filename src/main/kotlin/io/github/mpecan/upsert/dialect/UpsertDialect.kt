@@ -42,4 +42,12 @@ interface UpsertDialect {
         entities: List<T>,
         jdbcTemplate: NamedParameterJdbcTemplate
     ): List<T>
+
+    /**
+     * Get the SQL type to use for JSON values in this dialect.
+     * Different databases have different types for JSON data.
+     *
+     * @return The SQL type as defined in java.sql.Types
+     */
+    fun getJsonType(): Int
 }

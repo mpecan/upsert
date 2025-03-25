@@ -3,6 +3,7 @@ package io.github.mpecan.upsert.repository
 import io.github.mpecan.upsert.dialect.UpsertDialectFactory
 import io.github.mpecan.upsert.model.JpaUpsertModelMetadataProvider
 import io.github.mpecan.upsert.model.UpsertModel
+import io.github.mpecan.upsert.type.TypeMapperRegistry
 import jakarta.persistence.EntityManager
 import jakarta.persistence.EntityManagerFactory
 import org.springframework.context.ApplicationContext
@@ -20,10 +21,11 @@ class UpsertRepositoryFactory(
     private val entityManager: EntityManager,
     applicationContext: ApplicationContext,
     dataSource: DataSource,
-    private val jdbcTemplate: NamedParameterJdbcTemplate
+    private val jdbcTemplate: NamedParameterJdbcTemplate,
+    private val typeMapperRegistry: TypeMapperRegistry
 ) : JpaRepositoryFactory(entityManager) {
 
-    private val upsertDialect = UpsertDialectFactory(dataSource).getDialect()
+    private val upsertDialect = UpsertDialectFactory(dataSource, typeMapperRegistry).getDialect()
     private val entityManagerFactory = applicationContext.getBean(EntityManagerFactory::class.java)
     private lateinit var repository: UpsertRepository<Any, Any>
 
@@ -38,7 +40,8 @@ class UpsertRepositoryFactory(
             val metadataProvider = JpaUpsertModelMetadataProvider(
                 entityManager.metamodel,
                 entityManagerFactory.persistenceUnitUtil,
-                metadata.domainType
+                metadata.domainType,
+                typeMapperRegistry
             )
             val upsertModel = UpsertModel(metadataProvider)
 

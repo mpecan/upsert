@@ -23,4 +23,19 @@ class PostgreSqlConverterIntegrationTest : AbstractConverterIntegrationTest() {
             registry.add("spring.jpa.database-platform") { "org.hibernate.dialect.PostgreSQLDialect" }
         }
     }
+
+    override fun setupTables() {
+        jdbcTemplate.execute(
+            """
+            CREATE TABLE IF NOT EXISTS test_json_entity (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL UNIQUE,
+                attributes JSONB,
+                tags JSONB,
+                metadata JSONB,
+                created_at TIMESTAMP
+            )
+        """
+        )
+    }
 }

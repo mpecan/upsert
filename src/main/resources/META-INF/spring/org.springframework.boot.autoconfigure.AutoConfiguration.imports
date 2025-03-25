@@ -1,1 +1,2 @@
 io.github.mpecan.upsert.config.UpsertAutoConfiguration
+io.github.mpecan.upsert.config.TypeMapperAutoConfiguration
