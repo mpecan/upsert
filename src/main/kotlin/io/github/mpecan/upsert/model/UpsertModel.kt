@@ -2,7 +2,17 @@ package io.github.mpecan.upsert.model
 
 /**
  * Model class for upsert operations.
- * This class uses a UpsertModelMetadataProvider to get metadata about the entity.
+ * This class provides the core functionality for generating and validating upsert queries.
+ *
+ * UpsertModel uses a UpsertModelMetadataProvider to obtain metadata about the entity being upserted,
+ * such as table name, column information, primary keys, and unique constraints. This metadata is then
+ * used to construct appropriate upsert queries with the correct ON clauses and update columns.
+ *
+ * The class handles various scenarios including:
+ * - Default upsert operations using primary keys
+ * - Custom ON clauses using specific fields
+ * - Ignoring specific fields during updates
+ * - Validating that the requested operations are valid for the entity structure
  */
 class UpsertModel(
     private val metadataProvider: UpsertModelMetadataProvider
@@ -161,6 +171,13 @@ class UpsertModel(
             this@UpsertModel.validateUpsertQuery(values, onColumns, updateColumns)
         }
 
+        /**
+         * Create a new UpsertInstance without the specified value columns.
+         * This is useful when you want to exclude certain columns from the values part of the upsert query.
+         *
+         * @param columnsToExclude The columns to exclude from the values
+         * @return A new UpsertInstance with the specified columns excluded from values
+         */
         fun withoutValueColumns(columnsToExclude: List<ColumnInfo>): UpsertInstance {
             return UpsertInstance(
                 tableName,
@@ -170,6 +187,16 @@ class UpsertModel(
             )
         }
 
+        /**
+         * Create a new UpsertInstance using the first unique constraint as the ON clause.
+         * This is useful when you want to upsert based on a unique constraint rather than the primary key.
+         *
+         * The method automatically adjusts the update columns to exclude the unique constraint columns,
+         * as these cannot be updated during the upsert operation.
+         *
+         * @return A new UpsertInstance using the first unique constraint for the ON clause
+         * @throws IllegalStateException if no unique constraints are found for the entity
+         */
         fun forFirstUniqueConstraint(): UpsertInstance {
             if (metadataProvider.getUniqueConstraints().isEmpty()) {
                 throw IllegalStateException("No unique constraints found")

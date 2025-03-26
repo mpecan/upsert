@@ -37,6 +37,37 @@ dealing with large datasets. For data based comparisons please see
 the [Performance Testing](PERFORMANCE-TESTING.md) document and
 the [Performance Report](PERFORMANCE-REPORT.md).
 
+## Using the Library
+
+This library is available on Maven Central. You can add it to your project using:
+
+### Gradle (Kotlin DSL)
+
+```kotlin
+dependencies {
+    implementation("io.github.mpecan:upsert:1.1.0")
+}
+```
+
+### Gradle (Groovy DSL)
+
+```groovy
+dependencies {
+    implementation 'io.github.mpecan:upsert:1.1.0'
+}
+```
+
+### Maven
+
+```xml
+
+<dependency>
+  <groupId>io.github.mpecan</groupId>
+  <artifactId>upsert</artifactId>
+  <version>1.1.0</version>
+</dependency>
+```
+
 ## Database Support
 
 This library supports the following databases:
@@ -154,7 +185,6 @@ The system consists of:
 1. `TypeMapper` interface - Defines how Java/Kotlin types are mapped to SQL types
 2. `TypeMapperRegistry` - Central registry for type mappers
 3. `DefaultTypeMapper` - Handles common types
-4. `TypeMapperBuilder` - Helper for creating custom type mappers
 
 ## Usage
 
@@ -165,13 +195,25 @@ anything to use these mappings.
 
 ### Registering Custom Type Mappers
 
-To add support for custom types, register a type mapper:
+To add support for custom types, create a custom TypeMapper implementation and register it as a
+Spring bean:
 
 ```kotlin
-// Register a mapper for a custom JSON type
-registerTypeMapper {
-    addType(MyJsonType::class, Types.VARCHAR) { jsonObject ->
-        objectMapper.writeValueAsString(jsonObject)
+@Component
+class MyCustomTypeMapper : TypeMapper {
+    override fun canHandle(field: Field): Boolean {
+        return field.type == MyJsonType::class.java
+    }
+
+    override fun canHandleValue(value: Any?): Boolean {
+        return value is MyJsonType
+    }
+
+    override fun convertToJdbcValue(value: Any?): Any? {
+        if (value is MyJsonType) {
+            return objectMapper.writeValueAsString(value)
+        }
+        return value
     }
 }
 ```
@@ -181,17 +223,28 @@ registerTypeMapper {
 If you're creating a library that extends the upsert library with additional type support:
 
 ```kotlin
-// In your library's initialization code
+// In your library's auto-configuration class
+@Configuration
 class MyLibraryConfiguration {
-    fun initialize() {
-        val myCustomTypeMapper = TypeMapperBuilder()
-            .addType(MyCustomType::class.java, Types.OTHER) { value ->
-                // Convert MyCustomType to a JDBC-compatible value
-                convertMyType(value)
+    @Bean
+    fun myCustomTypeMapper(): TypeMapper {
+        return object : TypeMapper {
+            override fun canHandle(field: Field): Boolean {
+                return field.type == MyCustomType::class.java
             }
-            .build()
 
-        TypeMapperRegistry.register(myCustomTypeMapper)
+            override fun canHandleValue(value: Any?): Boolean {
+                return value is MyCustomType
+            }
+
+            override fun convertToJdbcValue(value: Any?): Any? {
+                if (value is MyCustomType) {
+                    // Convert MyCustomType to a JDBC-compatible value
+                    return convertMyType(value)
+                }
+                return value
+            }
+        }
     }
 }
 ```
@@ -230,31 +283,31 @@ Add one of the following dependencies to your `pom.xml`:
 <dependency>
   <groupId>com.fasterxml.jackson.core</groupId>
   <artifactId>jackson-databind</artifactId>
-  <version>1.2.0</version>
+  <version>2.15.2</version>
 </dependency>
 <dependency>
-<groupId>com.fasterxml.jackson.module</groupId>
-<artifactId>jackson-module-kotlin</artifactId>
-<version>1.2.0</version>
-</dependency>
-
-  <!-- Option 2: Gson -->
-<dependency>
-<groupId>com.google.code.gson</groupId>
-<artifactId>gson</artifactId>
-<version>1.2.0</version>
+  <groupId>com.fasterxml.jackson.module</groupId>
+  <artifactId>jackson-module-kotlin</artifactId>
+  <version>2.15.2</version>
 </dependency>
 
-  <!-- Option 3: JSON-B -->
+<!-- Option 2: Gson -->
 <dependency>
-<groupId>jakarta.json.bind</groupId>
-<artifactId>jakarta.json.bind-api</artifactId>
-<version>1.2.0</version>
+  <groupId>com.google.code.gson</groupId>
+  <artifactId>gson</artifactId>
+  <version>2.10.1</version>
+</dependency>
+
+<!-- Option 3: JSON-B -->
+<dependency>
+  <groupId>jakarta.json.bind</groupId>
+  <artifactId>jakarta.json.bind-api</artifactId>
+  <version>3.0.0</version>
 </dependency>
 <dependency>
-<groupId>org.eclipse</groupId>
-<artifactId>yasson</artifactId>
-<version>1.2.0</version>
+  <groupId>org.eclipse</groupId>
+  <artifactId>yasson</artifactId>
+  <version>3.0.3</version>
 </dependency>
 ```
 
@@ -302,13 +355,13 @@ testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
 <dependency>
   <groupId>com.fasterxml.jackson.core</groupId>
   <artifactId>jackson-databind</artifactId>
-  <version>1.2.0</version>
+  <version>2.15.2</version>
   <scope>test</scope>
 </dependency>
 <dependency>
 <groupId>com.fasterxml.jackson.module</groupId>
 <artifactId>jackson-module-kotlin</artifactId>
-<version>1.2.0</version>
+<version>2.15.2</version>
 <scope>test</scope>
 </dependency>
 ```
@@ -356,15 +409,15 @@ For JPA-annotated fields with `@Convert` annotations, the system:
 
 You can extend the type mapping system in several ways:
 
-1. Register a custom mapper for specific types
-2. Create a new `TypeMapper` implementation for complex type handling
-3. Override the default mapper for specific types
+1. Create a custom `TypeMapper` implementation and register it as a Spring bean
+2. Override the default mapper by creating a bean with higher precedence
+3. Create a library with auto-configuration that provides additional type mappers
 
 ## Best Practices
 
-1. Register type mappers during application startup
-2. Use the `TypeMapperBuilder` for simple type mappings
-3. Implement the `TypeMapper` interface directly for complex cases
+1. Use Spring's dependency injection to register type mappers
+2. Implement the `TypeMapper` interface for your custom types
+3. Use the `@Order` annotation to control the precedence of your type mappers
 4. Test your type mappers with a variety of input values
 
 ## Implementation Details
@@ -413,39 +466,6 @@ ON CONFLICT (id) DO UPDATE SET
 1. **Define Appropriate Constraints**: Ensure that your tables have appropriate unique or primary key constraints for the columns you want to use in the ON clause.
 2. **Use Batch Operations**: When upserting multiple entities, use the `upsertAll` method to take advantage of batch operation support.
 3. **Consider Performance**: For large datasets, consider using custom methods with specific ON clauses and ignored fields to optimize performance.
-
-## Maven Central
-
-### Using the Library
-
-This library is available on Maven Central. You can add it to your project using:
-
-#### Gradle (Kotlin DSL)
-
-```kotlin
-dependencies {
-    implementation("io.github.mpecan:upsert:1.2.0")
-}
-```
-
-#### Gradle (Groovy DSL)
-
-```groovy
-dependencies {
-    implementation 'io.github.mpecan:upsert:1.2.0'
-}
-```
-
-#### Maven
-
-```xml
-
-<dependency>
-  <groupId>io.github.mpecan</groupId>
-  <artifactId>upsert</artifactId>
-  <version>1.2.0</version>
-</dependency>
-```
 
 ### Contributing
 
