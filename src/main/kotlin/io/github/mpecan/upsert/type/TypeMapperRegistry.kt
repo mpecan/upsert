@@ -8,11 +8,18 @@ import java.lang.reflect.Field
 
 /**
  * Registry for type mappers.
- * This class allows registering custom type mappers and provides methods to find the appropriate mapper for a type.
+ * This class manages a collection of TypeMapper instances and provides methods to find the appropriate mapper for a field or value.
+ * It uses Spring's dependency injection to automatically collect all TypeMapper beans in the application context.
+ * The registry is responsible for determining the SQL type for fields and converting values to JDBC-compatible formats.
  */
 @Component
 class TypeMapperRegistry(private val mapperListProvider: ObjectProvider<List<TypeMapper>>) {
     private val logger = LoggerFactory.getLogger(TypeMapperRegistry::class.java)
+
+    /**
+     * Lazily loaded list of all TypeMapper instances available in the application context.
+     * This property is initialized when first accessed to ensure all mappers are properly registered.
+     */
     private val typeMappers: List<TypeMapper> by lazy { mapperListProvider.getObject() }
 
 
@@ -45,6 +52,14 @@ class TypeMapperRegistry(private val mapperListProvider: ObjectProvider<List<Typ
         }
     }
 
+    /**
+     * Find the appropriate TypeMapper for a given field.
+     * This method iterates through all registered type mappers and returns the first one that can handle the field.
+     * If no mapper can handle the field, it falls back to the DefaultTypeMapper.
+     *
+     * @param field The field to find a mapper for
+     * @return The appropriate TypeMapper for the field
+     */
     private fun forField(field: Field): TypeMapper {
         val mapper = typeMappers.firstOrNull { mapper ->
             try {

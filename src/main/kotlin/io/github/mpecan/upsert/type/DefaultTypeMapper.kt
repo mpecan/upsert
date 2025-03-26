@@ -6,7 +6,11 @@ import java.lang.reflect.Field
 
 /**
  * Default implementation of TypeMapper.
- * This class handles most standard Java/Kotlin types and delegates to Spring's StatementCreatorUtils for others.
+ * This class handles most standard Java/Kotlin types and serves as a fallback when no other TypeMapper can handle a type.
+ *
+ * The @Order(Ordered.LOWEST_PRECEDENCE) annotation ensures this mapper is used only when no other mapper
+ * with higher precedence can handle the type. This allows more specific mappers to take precedence
+ * while still providing a fallback for all other types.
  */
 @Order(Ordered.LOWEST_PRECEDENCE)
 class DefaultTypeMapper : TypeMapper {
@@ -35,7 +39,8 @@ class DefaultTypeMapper : TypeMapper {
 
     /**
      * Convert a value to a JDBC-compatible value.
-     * Handles common Java/Kotlin types like enums, dates, and times.
+     * This implementation specifically handles enum types by converting them to their name strings.
+     * For all other types, it returns the value unchanged, relying on JDBC's built-in type handling.
      *
      * @param value The value to convert
      * @return The converted value that JDBC can handle
