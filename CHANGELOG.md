@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/mpecan/upsert/compare/v1.2.0...v1.2.1) (2025-03-26)
+
+
+### Documentation
+
+* update version in README.md to 1.2.0 ([#38](https://github.com/mpecan/upsert/issues/38)) ([d4ea607](https://github.com/mpecan/upsert/commit/d4ea607bde6703d5e23aef814e5886c535c6036c))
+
 ## [1.2.0](https://github.com/mpecan/upsert/compare/v1.1.0...v1.2.0) (2025-03-25)
 
 
