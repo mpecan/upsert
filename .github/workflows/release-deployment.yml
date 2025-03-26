@@ -110,8 +110,8 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ steps.generate-token.outputs.token }}
-          commit-message: "docs: update version in README.md to ${{ steps.update-readme.outputs.release_version }}"
-          title: "docs: update version in README.md to ${{ steps.update-readme.outputs.release_version }}"
+          commit-message: "chore: update version in README.md to ${{ steps.update-readme.outputs.release_version }}"
+          title: "chore: update version in README.md to ${{ steps.update-readme.outputs.release_version }}"
           body: |
             This PR updates the version references in README.md to match the latest release version ${{ steps.update-readme.outputs.release_version }}.
 
