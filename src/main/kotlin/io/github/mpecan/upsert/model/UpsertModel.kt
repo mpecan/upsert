@@ -130,6 +130,7 @@ class UpsertModel(
      * @param values The values to upsert
      * @param ignoreColumns The columns to ignore during updates
      * @param ignoreAllFields Whether to ignore all fields during updates
+     * @param conditionalInfo The conditional information for when updates should occur
      * @return The UpsertInstance
      */
     fun createUpsertInstance(
@@ -137,6 +138,7 @@ class UpsertModel(
         values: List<String>? = null,
         ignoreColumns: List<String>? = null,
         ignoreAllFields: Boolean? = null,
+        conditionalInfo: ConditionalInfo? = null
     ): UpsertInstance {
         val onColumnsInUse = onColumns?.let { getOnColumns(it) } ?: getDefaultOnColumns()
         val updateColumns = when {
@@ -153,7 +155,8 @@ class UpsertModel(
             metadataProvider.getTableName(),
             onColumnsInUse,
             values?.let { getValueColumns(it) } ?: getDefaultValues(),
-            updateColumns
+            updateColumns,
+            conditionalInfo
         )
     }
 
@@ -166,6 +169,7 @@ class UpsertModel(
         val onColumns: List<ColumnInfo>,
         val values: List<ColumnInfo>,
         val updateColumns: List<ColumnInfo>,
+        val conditionalInfo: ConditionalInfo? = null
     ) {
         init {
             this@UpsertModel.validateUpsertQuery(values, onColumns, updateColumns)
@@ -183,7 +187,8 @@ class UpsertModel(
                 tableName,
                 onColumns,
                 values.filter { it !in columnsToExclude },
-                updateColumns
+                updateColumns,
+                conditionalInfo
             )
         }
 
@@ -207,7 +212,8 @@ class UpsertModel(
                 tableName,
                 uniqueColumns,
                 values,
-                updateColumns
+                updateColumns,
+                conditionalInfo
             )
         }
     }
