@@ -1,4 +1,5 @@
 import com.vanniktech.maven.publish.SonatypeHost
+import java.time.Duration
 
 plugins {
     kotlin("jvm") version "2.1.20"
@@ -94,12 +95,111 @@ tasks.test {
 }
 
 tasks.register<Test>("performanceTest") {
+    description = "Runs performance tests comparing upsert operations with Spring Data JPA saveAll operations"
+    group = "verification"
+    
     useJUnitPlatform {
         includeTags("performance")
     }
 
+    // Performance tests need more time
+    timeout.set(Duration.ofMinutes(30))
+    
+    // Enable reusing TestContainers instances across test runs for performance tests
+    systemProperty("testcontainers.reuse.enable", "true")
+    
+    // Set higher pool sizes for performance testing
+    systemProperty("spring.datasource.hikari.maximum-pool-size", "10")
+    systemProperty("spring.datasource.hikari.minimum-idle", "5")
+    systemProperty("spring.datasource.hikari.connection-timeout", "30000")
+    systemProperty("spring.datasource.hikari.idle-timeout", "60000")
+    systemProperty("spring.datasource.hikari.max-lifetime", "300000")
+
     testLogging {
         events("passed", "skipped", "failed")
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+    
+    // Ensure performance tests generate reports
+    reports {
+        html.required.set(true)
+        junitXml.required.set(true)
+    }
+    
+    doFirst {
+        logger.lifecycle("Running performance tests - this may take several minutes...")
+        logger.lifecycle("Performance reports will be generated at: ${reports.html.outputLocation.get()}")
+    }
+}
+
+// Task to run performance tests for MySQL only
+tasks.register<Test>("performanceTestMySql") {
+    description = "Runs performance tests for MySQL only"
+    group = "verification"
+    
+    useJUnitPlatform {
+        includeTags("performance")
+        includeEngines("junit-jupiter")
+        includeEngines("junit-vintage")
+    }
+    
+    filter {
+        includeTestsMatching("*MySqlPerformanceTest*")
+    }
+    
+    // Inherit all settings from performanceTest
+    timeout.set(Duration.ofMinutes(30))
+    systemProperty("testcontainers.reuse.enable", "true")
+    systemProperty("spring.datasource.hikari.maximum-pool-size", "10")
+    systemProperty("spring.datasource.hikari.minimum-idle", "5")
+    systemProperty("spring.datasource.hikari.connection-timeout", "30000")
+    systemProperty("spring.datasource.hikari.idle-timeout", "60000")
+    systemProperty("spring.datasource.hikari.max-lifetime", "300000")
+
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+    
+    doFirst {
+        logger.lifecycle("Running MySQL performance tests only...")
+    }
+}
+
+// Task to run performance tests for PostgreSQL only
+tasks.register<Test>("performanceTestPostgreSql") {
+    description = "Runs performance tests for PostgreSQL only"
+    group = "verification"
+    
+    useJUnitPlatform {
+        includeTags("performance")
+        includeEngines("junit-jupiter")
+        includeEngines("junit-vintage")
+    }
+    
+    filter {
+        includeTestsMatching("*PostgreSqlPerformanceTest*")
+    }
+    
+    // Inherit all settings from performanceTest
+    timeout.set(Duration.ofMinutes(30))
+    systemProperty("testcontainers.reuse.enable", "true")
+    systemProperty("spring.datasource.hikari.maximum-pool-size", "10")
+    systemProperty("spring.datasource.hikari.minimum-idle", "5")
+    systemProperty("spring.datasource.hikari.connection-timeout", "30000")
+    systemProperty("spring.datasource.hikari.idle-timeout", "60000")
+    systemProperty("spring.datasource.hikari.max-lifetime", "300000")
+
+    testLogging {
+        events("passed", "skipped", "failed")
+        showStandardStreams = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+    }
+    
+    doFirst {
+        logger.lifecycle("Running PostgreSQL performance tests only...")
     }
 }
 

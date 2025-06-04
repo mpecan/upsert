@@ -43,7 +43,8 @@ class UpsertRepositoryQuery(
                     entities.toList(),
                     upsertInfo.onFields,
                     upsertInfo.ignoredFields,
-                    upsertInfo.ignoreAllFields
+                    upsertInfo.ignoreAllFields,
+                    upsertInfo.conditionalInfo
                 )
             } else {
                 // Call the appropriate upsert method
@@ -51,7 +52,8 @@ class UpsertRepositoryQuery(
                     parameters[0],
                     upsertInfo.onFields,
                     upsertInfo.ignoredFields,
-                    upsertInfo.ignoreAllFields
+                    upsertInfo.ignoreAllFields,
+                    upsertInfo.conditionalInfo
                 )
             }
         } catch (e: Exception) {

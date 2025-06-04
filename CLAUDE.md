@@ -8,6 +8,22 @@
   `./gradlew test --tests "io.github.mpecan.upsert.integration.MySqlRepositoryIntegrationTest.should insert new jpa entity using repository"`
 - Debug tests: `./gradlew test --debug`
 
+## Performance Test Commands
+
+Performance tests are excluded from regular test runs and must be run explicitly:
+
+- **All performance tests**: `./gradlew performanceTest`
+- **MySQL performance tests only**: `./gradlew performanceTestMySql`
+- **PostgreSQL performance tests only**: `./gradlew performanceTestPostgreSql`
+
+Performance tests compare upsert operations with Spring Data JPA `saveAll()` operations across different scenarios:
+- Insert performance (new entities)
+- Update performance (existing entities)
+- Mixed insert/update performance
+- Batch size impact analysis
+
+**Note**: Performance tests take significantly longer than unit tests (several minutes) and require Docker for TestContainers.
+
 ## Code Style
 
 - Kotlin with strict null safety (JSR-305 = strict)

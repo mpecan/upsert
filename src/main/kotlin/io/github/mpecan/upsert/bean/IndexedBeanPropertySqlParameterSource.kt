@@ -14,7 +14,12 @@ class IndexedBeanPropertySqlParameterSource(
 
     override fun getValue(propertyName: String): Any? {
         val (beanName, beanIndex) = splitIndexedPropertyName(propertyName)
-        return beanList[beanIndex].getValue(beanName)
+        val value = beanList[beanIndex].getValue(beanName)
+        // Debug logging for all parameters in conditional upserts
+        if (beanName == "updatedAt" || beanName == "version" || propertyName.contains("updatedAt") || propertyName.contains("version")) {
+            println("[DEBUG_LOG] IndexedBeanPropertySqlParameterSource.getValue: propertyName=$propertyName, beanName=$beanName, value=$value")
+        }
+        return value
     }
 
     override fun hasValue(propertyName: String): Boolean {
@@ -33,11 +38,17 @@ class IndexedBeanPropertySqlParameterSource(
     }
 
     private fun splitIndexedPropertyName(propertyName: String): Pair<String, Int> {
-        val parts = propertyName.split("_")
-        return Pair(parts[0], parts[1].toInt() - 1)
+        // Handle property names with underscores by finding the last underscore
+        val lastUnderscoreIndex = propertyName.lastIndexOf("_")
+        if (lastUnderscoreIndex == -1) {
+            throw IllegalArgumentException("Invalid indexed property name: $propertyName")
+        }
+        val beanName = propertyName.substring(0, lastUnderscoreIndex)
+        val index = propertyName.substring(lastUnderscoreIndex + 1).toInt() - 1
+        return Pair(beanName, index)
     }
 
     private fun getIndexedPropertyName(propertyName: String, index: Int): String {
-        return "${propertyName}_$index"
+        return "${propertyName}_${index + 1}"
     }
 }

@@ -2,6 +2,7 @@ package io.github.mpecan.upsert.dialect
 
 import io.github.mpecan.upsert.bean.ExtendedBeanPropertySqlParameterSource
 import io.github.mpecan.upsert.model.ColumnInfo
+import io.github.mpecan.upsert.model.ConditionalInfo
 import io.github.mpecan.upsert.model.UpsertModel
 import io.github.mpecan.upsert.type.TypeMapperRegistry
 import org.springframework.beans.PropertyAccessorFactory
@@ -22,7 +23,9 @@ class PostgreSqlUpsertDialect(private val typeMapperRegistry: TypeMapperRegistry
      * @param tableName The name of the table
      * @param keyColumns The columns to use as keys for the upsert operation
      * @param valueColumns The columns to update during the upsert operation
+     * @param updateColumns The columns to update on conflict
      * @param batchSize The number of entities in the batch
+     * @param conditionalInfo Optional conditional information for when updates should occur
      * @return The generated SQL statement
      */
     override fun generateBatchUpsertSql(
@@ -30,7 +33,8 @@ class PostgreSqlUpsertDialect(private val typeMapperRegistry: TypeMapperRegistry
         keyColumns: List<ColumnInfo>,
         valueColumns: List<ColumnInfo>,
         updateColumns: List<ColumnInfo>,
-        batchSize: Int
+        batchSize: Int,
+        conditionalInfo: ConditionalInfo?
     ): String {
 
         val insertClause = "INSERT INTO $tableName (${
@@ -42,8 +46,14 @@ class PostgreSqlUpsertDialect(private val typeMapperRegistry: TypeMapperRegistry
         val onConflictClause = if (updateColumns.isEmpty()) {
             "ON CONFLICT (${keyColumns.map { it.name }.joinToString(", ")}) DO NOTHING"
         } else {
-            "ON CONFLICT (${keyColumns.map { it.name }.joinToString(", ")}) DO UPDATE SET " +
-                    updateColumns.map { it.name }.joinToString(", ") { "$it = EXCLUDED.$it" }
+            val updateSet = updateColumns.joinToString(", ") { "${it.name} = EXCLUDED.${it.name}" }
+            val conditionalClause = conditionalInfo?.let {
+                // Find the column info for the conditional field
+                val conditionalColumn = valueColumns.find { col -> col.fieldName == it.fieldName || col.name == it.fieldName }
+                val conditionalColumnName = conditionalColumn?.name ?: it.fieldName
+                " WHERE EXCLUDED.$conditionalColumnName ${it.operator.sqlOperator} $tableName.$conditionalColumnName"
+            } ?: ""
+            "ON CONFLICT (${keyColumns.map { it.name }.joinToString(", ")}) DO UPDATE SET $updateSet$conditionalClause"
         }
 
         return "$insertClause $onConflictClause"
@@ -89,7 +99,8 @@ class PostgreSqlUpsertDialect(private val typeMapperRegistry: TypeMapperRegistry
                 upsertInstance.onColumns,
                 upsertInstance.values,
                 upsertInstance.updateColumns,
-                1
+                1,
+                upsertInstance.conditionalInfo
             )
 
             val keyHolder = GeneratedKeyHolder()
@@ -112,7 +123,8 @@ class PostgreSqlUpsertDialect(private val typeMapperRegistry: TypeMapperRegistry
                 uniqueConstraintInstance.onColumns,
                 uniqueConstraintInstance.values,
                 uniqueConstraintInstance.updateColumns,
-                1
+                1,
+                uniqueConstraintInstance.conditionalInfo
             )
 
             val keyHolder = GeneratedKeyHolder()

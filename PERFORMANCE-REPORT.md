@@ -1,6 +1,5 @@
 # Performance Test Report
-
-Generated on: 2025-03-25 20:43:16
+Generated on: 2025-06-04 09:39:49
 
 ## Summary
 
@@ -8,62 +7,63 @@ This report compares the performance of two approaches for inserting/updating en
 1. `upsertAll` - Uses a custom implementation that generates SQL UPSERT statements
 2. `saveAll` - Uses the standard Spring Data JPA implementation
 
-Each test was run multiple times to get an average performance measurement, reducing the impact of
-external factors.
+Each test was run multiple times to get an average performance measurement, reducing the impact of external factors.
 
 ## Insert Performance
 
-| Database   | Entity Count | Avg Upsert Time | Avg SaveAll Time | Difference | Ratio (%) |
-|------------|--------------|-----------------|------------------|------------|-----------|
-| MySQL      | 10           | 6,79 ms         | 28,35 ms         | -21,56 ms  | 23,94%    |
-| PostgreSQL | 10           | 3,65 ms         | 10,17 ms         | -6,52 ms   | 35,88%    |
-| MySQL      | 100          | 7,97 ms         | 110,59 ms        | -102,62 ms | 7,21%     |
-| PostgreSQL | 100          | 3,31 ms         | 44,31 ms         | -41,00 ms  | 7,46%     |
-| MySQL      | 1000         | 34,25 ms        | 683,43 ms        | -649,18 ms | 5,01%     |
-| PostgreSQL | 1000         | 19,80 ms        | 358,75 ms        | -338,95 ms | 5,52%     |
+| Database | Entity Count | Avg Upsert Time  | Avg SaveAll Time  | Difference  | Ratio (%) |
+|----------|--------------|----------------------|----------------------|-----------------|----------|
+| PostgreSQL | 10 | 2,66 ms | 20,20 ms | -17,54 ms | 13,18% |
+| MySQL | 10 | 5,35 ms | 23,21 ms | -17,86 ms | 23,05% |
+| PostgreSQL | 100 | 5,15 ms | 68,28 ms | -63,14 ms | 7,54% |
+| MySQL | 100 | 8,02 ms | 113,07 ms | -105,05 ms | 7,09% |
+| PostgreSQL | 1000 | 25,95 ms | 469,33 ms | -443,37 ms | 5,53% |
+| MySQL | 1000 | 43,12 ms | 730,02 ms | -686,91 ms | 5,91% |
 
 ## Mixed Insert-Update Performance
 
-| Database   | Entity Count | Avg Upsert Time | Avg SaveAll Time | Difference | Ratio (%) |
-|------------|--------------|-----------------|------------------|------------|-----------|
-| MySQL      | 10           | 2,92 ms         | 12,14 ms         | -9,22 ms   | 24,05%    |
-| PostgreSQL | 10           | 683,56 µs       | 4,25 ms          | -3,57 ms   | 16,07%    |
-| MySQL      | 100          | 4,61 ms         | 78,92 ms         | -74,31 ms  | 5,85%     |
-| PostgreSQL | 100          | 2,32 ms         | 32,55 ms         | -30,23 ms  | 7,12%     |
-| MySQL      | 1000         | 34,75 ms        | 640,06 ms        | -605,31 ms | 5,43%     |
-| PostgreSQL | 1000         | 18,90 ms        | 400,51 ms        | -381,61 ms | 4,72%     |
+| Database | Entity Count | Avg Upsert Time  | Avg SaveAll Time  | Difference  | Ratio (%) |
+|----------|--------------|----------------------|----------------------|-----------------|----------|
+| PostgreSQL | 10 | 965,40 µs | 9,27 ms | -8,30 ms | 10,41% |
+| MySQL | 10 | 2,15 ms | 10,28 ms | -8,13 ms | 20,95% |
+| PostgreSQL | 100 | 3,29 ms | 51,55 ms | -48,26 ms | 6,37% |
+| MySQL | 100 | 6,16 ms | 84,05 ms | -77,89 ms | 7,33% |
+| PostgreSQL | 1000 | 22,74 ms | 402,48 ms | -379,74 ms | 5,65% |
+| MySQL | 1000 | 45,74 ms | 722,93 ms | -677,19 ms | 6,33% |
 
 ## Update Performance
 
-| Database   | Entity Count | Avg Upsert Time | Avg SaveAll Time | Difference | Ratio (%) |
-|------------|--------------|-----------------|------------------|------------|-----------|
-| MySQL      | 10           | 2,13 ms         | 9,58 ms          | -7,45 ms   | 22,26%    |
-| PostgreSQL | 10           | 650,23 µs       | 3,87 ms          | -3,22 ms   | 16,78%    |
-| MySQL      | 100          | 7,95 ms         | 66,64 ms         | -58,68 ms  | 11,94%    |
-| PostgreSQL | 100          | 2,37 ms         | 38,23 ms         | -35,87 ms  | 6,19%     |
-| MySQL      | 1000         | 40,80 ms        | 756,69 ms        | -715,89 ms | 5,39%     |
-| PostgreSQL | 1000         | 18,86 ms        | 360,94 ms        | -342,08 ms | 5,23%     |
+| Database | Entity Count | Avg Upsert Time  | Avg SaveAll Time  | Difference  | Ratio (%) |
+|----------|--------------|----------------------|----------------------|-----------------|----------|
+| PostgreSQL | 10 | 795,87 µs | 5,23 ms | -4,44 ms | 15,21% |
+| MySQL | 10 | 2,32 ms | 11,78 ms | -9,47 ms | 19,68% |
+| PostgreSQL | 100 | 2,85 ms | 42,28 ms | -39,43 ms | 6,74% |
+| MySQL | 100 | 6,34 ms | 80,40 ms | -74,06 ms | 7,88% |
+| PostgreSQL | 1000 | 25,02 ms | 397,97 ms | -372,95 ms | 6,29% |
+| MySQL | 1000 | 134,70 ms | 814,28 ms | -679,58 ms | 16,54% |
 
 ## Batch Size Performance [total of 1000]
-
-### MySQL
-
-| Batch Size | Avg Upsert Time | Avg SaveAll Time | Difference | Ratio (%) |
-|------------|-----------------|------------------|------------|-----------|
-| 10         | 187,77 ms       | 922,61 ms        | -734,84 ms | 20,4%     |
-| 50         | 58,12 ms        | 564,86 ms        | -506,74 ms | 10,3%     |
-| 100        | 63,27 ms        | 747,97 ms        | -684,70 ms | 8,5%      |
-| 200        | 51,27 ms        | 843,21 ms        | -791,94 ms | 6,1%      |
-| 500        | 38,45 ms        | 756,86 ms        | -718,41 ms | 5,1%      |
-| 1000       | 41,41 ms        | 932,54 ms        | -891,13 ms | 4,4%      |
 
 ### PostgreSQL
 
 | Batch Size | Avg Upsert Time | Avg SaveAll Time | Difference | Ratio (%) |
-|------------|-----------------|------------------|------------|-----------|
-| 10         | 52,05 ms        | 406,03 ms        | -353,98 ms | 12,8%     |
-| 50         | 23,17 ms        | 363,47 ms        | -340,30 ms | 6,4%      |
-| 100        | 19,53 ms        | 355,55 ms        | -336,02 ms | 5,5%      |
-| 200        | 17,95 ms        | 361,35 ms        | -343,40 ms | 5,0%      |
-| 500        | 17,70 ms        | 363,01 ms        | -345,30 ms | 4,9%      |
-| 1000       | 17,54 ms        | 358,58 ms        | -341,05 ms | 4,9%      |
+|------------|----------------------|----------------------|-----------------|----------|
+| 10 | 60,11 ms | 426,02 ms | -365,90 ms | 14,1% |
+| 50 | 31,43 ms | 414,61 ms | -383,18 ms | 7,6% |
+| 100 | 23,40 ms | 393,28 ms | -369,88 ms | 5,9% |
+| 200 | 20,77 ms | 402,74 ms | -381,97 ms | 5,2% |
+| 500 | 25,05 ms | 421,89 ms | -396,83 ms | 5,9% |
+| 1000 | 23,15 ms | 412,72 ms | -389,57 ms | 5,6% |
+
+### MySQL
+
+| Batch Size | Avg Upsert Time | Avg SaveAll Time | Difference | Ratio (%) |
+|------------|----------------------|----------------------|-----------------|----------|
+| 10 | 242,39 ms | 1,00 s | -758,87 ms | 24,2% |
+| 50 | 66,62 ms | 751,73 ms | -685,11 ms | 8,9% |
+| 100 | 50,16 ms | 750,67 ms | -700,50 ms | 6,7% |
+| 200 | 71,13 ms | 777,77 ms | -706,64 ms | 9,1% |
+| 500 | 35,52 ms | 709,73 ms | -674,21 ms | 5,0% |
+| 1000 | 36,49 ms | 724,00 ms | -687,51 ms | 5,0% |
+
+
