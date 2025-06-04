@@ -14,11 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Generate GitHub App token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         id: generate-token
         with:
-          app_id: ${{ secrets.REPOSITORY_BUTLER_APP_ID }}
-          private_key: ${{ secrets.REPOSITORY_BUTLER_PEM }}
+          app-id: ${{ secrets.REPOSITORY_BUTLER_APP_ID }}
+          private-key: ${{ secrets.REPOSITORY_BUTLER_PEM }}
       - uses: google-github-actions/release-please-action@v4
         id: release
         with:
