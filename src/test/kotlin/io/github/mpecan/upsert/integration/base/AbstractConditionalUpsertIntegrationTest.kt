@@ -4,6 +4,7 @@ import io.github.mpecan.upsert.entity.ConditionalTestEntity
 import io.github.mpecan.upsert.integration.TestApplication
 import io.github.mpecan.upsert.integration.repositories.ConditionalTestRepository
 import org.junit.jupiter.api.Assertions.*
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
@@ -115,7 +116,7 @@ abstract class AbstractConditionalUpsertIntegrationTest {
         )
         assertEquals("Original", stored1!!.name)
         assertEquals(1, stored1.version)
-        assertEquals(initialTime, stored1.updatedAt)
+        assertThat(stored1.updatedAt).isEqualToIgnoringNanos(initialTime)
 
         // When - try to update with newer timestamp (should update)
         val newerTime = initialTime.plusHours(1)
@@ -169,7 +170,7 @@ abstract class AbstractConditionalUpsertIntegrationTest {
         
         assertEquals("Updated Successfully", stored2.name)
         assertEquals(3, stored2.version)
-        assertEquals(newerTime, stored2.updatedAt)
+        assertThat(stored2.updatedAt).isEqualToIgnoringNanos(newerTime)
     }
 
     @Test
@@ -419,7 +420,7 @@ abstract class AbstractConditionalUpsertIntegrationTest {
         assertEquals(300.0, stored2!!.price)
         assertEquals(10.0f, stored2.score)
         assertEquals(true, stored2.active) // Active should still be true (ignored)
-        assertEquals(baseTime.plusHours(1), stored2.updatedAt)
+        assertThat(stored2.updatedAt).isEqualToIgnoringNanos(baseTime.plusHours(1))
     }
 
     @Test
