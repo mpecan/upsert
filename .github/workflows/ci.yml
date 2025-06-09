@@ -12,6 +12,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: '0'
 
       # Cache Gradle Wrapper separately
     - name: Cache Gradle Wrapper
