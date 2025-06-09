@@ -40,9 +40,7 @@ class IndexedBeanPropertySqlParameterSource(
     private fun splitIndexedPropertyName(propertyName: String): Pair<String, Int> {
         // Handle property names with underscores by finding the last underscore
         val lastUnderscoreIndex = propertyName.lastIndexOf("_")
-        if (lastUnderscoreIndex == -1) {
-            throw IllegalArgumentException("Invalid indexed property name: $propertyName")
-        }
+        require(lastUnderscoreIndex != -1) { "Invalid indexed property name: $propertyName" }
         val beanName = propertyName.substring(0, lastUnderscoreIndex)
         val index = propertyName.substring(lastUnderscoreIndex + 1).toInt() - 1
         return Pair(beanName, index)
