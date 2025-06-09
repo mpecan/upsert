@@ -149,7 +149,7 @@ abstract class AbstractMySqlUpsertDialect(
         keyHolder: GeneratedKeyHolder,
         valueColumns: List<ColumnInfo>
     ) {
-        val keysList = keyHolder.keyList
+        val keysList = keyHolder.keyList.toList()
         if (keysList.isEmpty()) return
 
         val generatedColumns = valueColumns.filter { it.generated }
