@@ -1,6 +1,7 @@
 package io.github.mpecan.upsert.dialect
 
 import io.github.mpecan.upsert.model.ColumnInfo
+import io.github.mpecan.upsert.model.ConditionalInfo
 import io.github.mpecan.upsert.model.UpsertModel
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
@@ -17,7 +18,9 @@ interface UpsertDialect {
      * @param tableName The name of the table
      * @param keyColumns The columns to use as keys for the upsert operation
      * @param valueColumns The columns to update during the upsert operation
+     * @param updateColumns The columns to update on conflict
      * @param batchSize The number of entities in the batch
+     * @param conditionalInfo Optional conditional information for when updates should occur
      * @return The generated SQL statement
      */
     fun generateBatchUpsertSql(
@@ -25,7 +28,8 @@ interface UpsertDialect {
         keyColumns: List<ColumnInfo>,
         valueColumns: List<ColumnInfo>,
         updateColumns: List<ColumnInfo> = valueColumns,
-        batchSize: Int
+        batchSize: Int,
+        conditionalInfo: ConditionalInfo? = null
     ): String
 
     /**
