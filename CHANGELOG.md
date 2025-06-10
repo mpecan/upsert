@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.3.0](https://github.com/mpecan/upsert/compare/v1.2.0...v1.3.0) (2025-06-10)
+
+
+### Features
+
+* add JaCoCo code coverage reporting for SonarQube integration ([#52](https://github.com/mpecan/upsert/issues/52)) ([ef028e5](https://github.com/mpecan/upsert/commit/ef028e599de0f0970d78bc43d9c8320e6880b225))
+* introduce ability to upsert conditionally ⚡ ([#48](https://github.com/mpecan/upsert/issues/48)) ([80f67b8](https://github.com/mpecan/upsert/commit/80f67b8e9ac0fcd94eb02fa03af1a5407a795d5d))
+
+
+### Bug Fixes
+
+* **deps:** update dependency org.xerial:sqlite-jdbc to v3.50.1.0 ([#51](https://github.com/mpecan/upsert/issues/51)) ([7a2516e](https://github.com/mpecan/upsert/commit/7a2516eea8bd6b2ad20916c1f0677bdb9751763e))
+
+
+### Documentation
+
+* update version in README.md to 1.2.0 ([#38](https://github.com/mpecan/upsert/issues/38)) ([d4ea607](https://github.com/mpecan/upsert/commit/d4ea607bde6703d5e23aef814e5886c535c6036c))
+
 ## [1.2.0](https://github.com/mpecan/upsert/compare/v1.1.0...v1.2.0) (2025-03-25)
 
 
