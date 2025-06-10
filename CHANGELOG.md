@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/mpecan/upsert/compare/v1.3.0...v1.4.0) (2025-06-10)
+
+
+### Features
+
+* significantly improve test coverage and fix maintainability violations ([#55](https://github.com/mpecan/upsert/issues/55)) ([0336441](https://github.com/mpecan/upsert/commit/033644154528b923be17edadf085b13e1ecf27ea))
+
 ## [1.3.0](https://github.com/mpecan/upsert/compare/v1.2.0...v1.3.0) (2025-06-10)
 
 
