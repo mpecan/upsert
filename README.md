@@ -45,7 +45,7 @@ This library is available on Maven Central. You can add it to your project using
 
 ```kotlin
 dependencies {
-    implementation("io.github.mpecan:upsert:1.1.0")
+    implementation("io.github.mpecan:upsert:1.3.0")
 }
 ```
 
@@ -53,7 +53,7 @@ dependencies {
 
 ```groovy
 dependencies {
-    implementation 'io.github.mpecan:upsert:1.1.0'
+    implementation 'io.github.mpecan:upsert:1.3.0'
 }
 ```
 
@@ -64,7 +64,7 @@ dependencies {
 <dependency>
   <groupId>io.github.mpecan</groupId>
   <artifactId>upsert</artifactId>
-  <version>1.1.0</version>
+  <version>1.3.0</version>
 </dependency>
 ```
 
@@ -283,31 +283,31 @@ Add one of the following dependencies to your `pom.xml`:
 <dependency>
   <groupId>com.fasterxml.jackson.core</groupId>
   <artifactId>jackson-databind</artifactId>
-  <version>2.15.2</version>
+  <version>1.3.0</version>
 </dependency>
 <dependency>
   <groupId>com.fasterxml.jackson.module</groupId>
   <artifactId>jackson-module-kotlin</artifactId>
-  <version>2.15.2</version>
+  <version>1.3.0</version>
 </dependency>
 
 <!-- Option 2: Gson -->
 <dependency>
   <groupId>com.google.code.gson</groupId>
   <artifactId>gson</artifactId>
-  <version>2.10.1</version>
+  <version>1.3.0</version>
 </dependency>
 
 <!-- Option 3: JSON-B -->
 <dependency>
   <groupId>jakarta.json.bind</groupId>
   <artifactId>jakarta.json.bind-api</artifactId>
-  <version>3.0.0</version>
+  <version>1.3.0</version>
 </dependency>
 <dependency>
   <groupId>org.eclipse</groupId>
   <artifactId>yasson</artifactId>
-  <version>3.0.3</version>
+  <version>1.3.0</version>
 </dependency>
 ```
 
@@ -355,13 +355,13 @@ testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.15.2")
 <dependency>
   <groupId>com.fasterxml.jackson.core</groupId>
   <artifactId>jackson-databind</artifactId>
-  <version>2.15.2</version>
+  <version>1.3.0</version>
   <scope>test</scope>
 </dependency>
 <dependency>
 <groupId>com.fasterxml.jackson.module</groupId>
 <artifactId>jackson-module-kotlin</artifactId>
-<version>2.15.2</version>
+<version>1.3.0</version>
 <scope>test</scope>
 </dependency>
 ```
