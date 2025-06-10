@@ -9,6 +9,8 @@ plugins {
     id("java-library")
     id("signing")
     id("com.vanniktech.maven.publish") version "0.32.0"
+    id("org.sonarqube") version "6.2.0.5505"
+    id("jacoco")
 }
 
 group = "io.github.mpecan"
@@ -24,6 +26,8 @@ repositories {
     mavenCentral()
 }
 
+val sqliteVersion = "3.50.1.0"
+val mockitoKotlinVersion = "5.4.0"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
@@ -34,7 +38,7 @@ dependencies {
     // Database drivers
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("com.mysql:mysql-connector-j")
-    runtimeOnly("org.xerial:sqlite-jdbc:3.50.1.0")
+    runtimeOnly("org.xerial:sqlite-jdbc:$sqliteVersion")
     runtimeOnly("org.hibernate.orm:hibernate-community-dialects")
 
     compileOnly("com.fasterxml.jackson.core:jackson-databind")
@@ -45,7 +49,7 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:$mockitoKotlinVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-api")
     testImplementation("org.junit.platform:junit-platform-launcher")
 
@@ -92,6 +96,8 @@ tasks.test {
     testLogging {
         events("passed", "skipped", "failed")
     }
+    
+    finalizedBy(tasks.jacocoTestReport)
 }
 
 tasks.register<Test>("performanceTest") {
@@ -205,12 +211,16 @@ tasks.register<Test>("performanceTestPostgreSql") {
 
 // Create a source jar for publishing
 tasks.register<Jar>("sourceJar") {
+    description = "Creates a JAR containing the source code"
+    group = "publishing"
     from(sourceSets.main.get().allSource)
     archiveClassifier.set("sources")
 }
 
 // Create a javadoc jar for publishing
 tasks.register<Jar>("javadocJar") {
+    description = "Creates a JAR containing the Javadoc"
+    group = "documentation"
     from(tasks.named("javadoc"))
     archiveClassifier.set("javadoc")
 }
@@ -252,6 +262,34 @@ mavenPublishing {
             connection.set("scm:git:git://github.com/mpecan/upsert.git")
             developerConnection.set("scm:git:ssh://github.com/mpecan/upsert.git")
             url.set("https://github.com/mpecan/upsert")
+        }
+    }
+}
+
+sonar {
+    properties {
+        property("sonar.projectKey", "mpecan_upsert")
+        property("sonar.organization", "mpecan")
+        property("sonar.host.url", "https://sonarcloud.io")
+    }
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}
+
+tasks.jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.80".toBigDecimal()
+            }
         }
     }
 }

@@ -82,7 +82,7 @@ open class ExtendedBeanPropertySqlParameterSource(
     }
 
     private inline fun <T : Any> withField(paramName: String, consumer: (Field) -> T?): T? {
-        return fieldCache.get(paramName).let {
+        return fieldCache[paramName].let {
             try {
                 if (it != null) consumer(it) else null
             } catch (e: Exception) {

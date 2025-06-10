@@ -7,6 +7,7 @@ import io.github.mpecan.upsert.model.ConditionalInfo
 import io.github.mpecan.upsert.model.UpsertModel
 import io.github.mpecan.upsert.type.TypeMapperRegistry
 import org.slf4j.LoggerFactory
+import org.springframework.beans.PropertyAccessor
 import org.springframework.beans.PropertyAccessorFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.support.GeneratedKeyHolder
@@ -119,7 +120,6 @@ abstract class AbstractMySqlUpsertDialect(
             return emptyList()
         }
 
-        // Generate the SQL for the batch
         val sql = generateBatchUpsertSql(
             upsertInstance.tableName,
             upsertInstance.onColumns,
@@ -129,57 +129,65 @@ abstract class AbstractMySqlUpsertDialect(
             upsertInstance.conditionalInfo
         )
 
-        // For MySQL, we need to create parameter sources with indexed names
-        val allParamValues = entities.mapIndexed { index, entity ->
-            ExtendedBeanPropertySqlParameterSource(entity, typeMapperRegistry)
-        }.let { IndexedBeanPropertySqlParameterSource(it) }
-
+        val allParamValues = createParameterSources(entities)
         val keyHolder = GeneratedKeyHolder()
         
-        // Execute the SQL with all parameters using named parameters
         jdbcTemplate.update(sql, allParamValues, keyHolder)
-
-        // Update entities with generated keys if needed
-        val keysList = keyHolder.keyList
-
-        if (keysList.isNotEmpty()) {
-            // Find generated columns
-            val generatedColumns = upsertInstance.values.filter { it.generated }
-
-            entities.forEachIndexed { index, entity ->
-                if (index < keysList.size) {
-                    val keys = keysList[index]
-                    val beanWrapper = PropertyAccessorFactory.forDirectFieldAccess(entity)
-                    for (column in generatedColumns) {
-                        // Try different key names that might be used by the database
-                        val possibleKeyNames = listOf("GENERATED_KEY", "GENERATED_KEYS", column.name, column.name.uppercase())
-                        var generatedKey: Any? = null
-
-                        for (keyName in possibleKeyNames) {
-                            generatedKey = keys[keyName]
-                            if (generatedKey != null) {
-                                break
-                            }
-                        }
-
-                        if (generatedKey != null) {
-                            try {
-                                if (beanWrapper.getPropertyValue(column.fieldName) != null) {
-                                    // Skip setting the generated key if the field is already set
-                                    continue
-                                }
-                                beanWrapper.setPropertyValue(column.fieldName, generatedKey)
-                            } catch (e: Exception) {
-                                // Log the error but continue processing
-                                logger.debug("Error setting generated key: ${e.message}")
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        updateEntitiesWithGeneratedKeys(entities, keyHolder, upsertInstance.values)
 
         return entities
+    }
+
+    private fun <T : Any> createParameterSources(entities: List<T>): IndexedBeanPropertySqlParameterSource {
+        return entities.map { entity ->
+            ExtendedBeanPropertySqlParameterSource(entity, typeMapperRegistry)
+        }.let { IndexedBeanPropertySqlParameterSource(it) }
+    }
+
+    private fun <T : Any> updateEntitiesWithGeneratedKeys(
+        entities: List<T>,
+        keyHolder: GeneratedKeyHolder,
+        valueColumns: List<ColumnInfo>
+    ) {
+        val keysList = keyHolder.keyList.toList()
+        if (keysList.isEmpty()) return
+
+        val generatedColumns = valueColumns.filter { it.generated }
+        entities.forEachIndexed { index, entity ->
+            if (index < keysList.size) {
+                updateEntityWithGeneratedKeys(entity, keysList[index], generatedColumns)
+            }
+        }
+    }
+
+    private fun <T : Any> updateEntityWithGeneratedKeys(
+        entity: T,
+        keys: Map<String, Any>,
+        generatedColumns: List<ColumnInfo>
+    ) {
+        val beanWrapper = PropertyAccessorFactory.forDirectFieldAccess(entity)
+        
+        for (column in generatedColumns) {
+            val generatedKey = findGeneratedKey(keys, column)
+            if (generatedKey != null) {
+                setGeneratedKeyOnEntity(beanWrapper, column.fieldName, generatedKey)
+            }
+        }
+    }
+
+    private fun findGeneratedKey(keys: Map<String, Any>, column: ColumnInfo): Any? {
+        val possibleKeyNames = listOf("GENERATED_KEY", "GENERATED_KEYS", column.name, column.name.uppercase())
+        return possibleKeyNames.firstNotNullOfOrNull { keyName -> keys[keyName] }
+    }
+
+    private fun setGeneratedKeyOnEntity(beanWrapper: PropertyAccessor, fieldName: String, generatedKey: Any) {
+        try {
+            if (beanWrapper.getPropertyValue(fieldName) == null) {
+                beanWrapper.setPropertyValue(fieldName, generatedKey)
+            }
+        } catch (e: Exception) {
+            logger.debug("Error setting generated key: ${e.message}")
+        }
     }
 
     override fun getJsonType(): Int {

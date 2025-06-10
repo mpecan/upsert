@@ -203,9 +203,7 @@ class UpsertModel(
          * @throws IllegalStateException if no unique constraints are found for the entity
          */
         fun forFirstUniqueConstraint(): UpsertInstance {
-            if (metadataProvider.getUniqueConstraints().isEmpty()) {
-                throw IllegalStateException("No unique constraints found")
-            }
+            check(metadataProvider.getUniqueConstraints().isNotEmpty()) { "No unique constraints found" }
             val uniqueColumns = metadataProvider.getUniqueConstraints().first()
             val updateColumns = updateColumns.filter { it !in uniqueColumns }
             return UpsertInstance(

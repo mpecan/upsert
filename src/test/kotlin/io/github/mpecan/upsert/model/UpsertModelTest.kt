@@ -41,6 +41,7 @@ class UpsertModelTest {
             columns = listOf(generatedIdColumn, nameColumn, descriptionColumn, activeColumn),
             idColumn = generatedIdColumn,
             uniqueColumns = listOf(nameColumn), // JpaTestEntityWithGeneratedId has a unique constraint on name
+            uniqueConstraints = listOf(listOf(nameColumn)), // Properly define unique constraints
             entityClass = JpaTestEntityWithGeneratedId::class.java
         )
         upsertModelWithGeneratedId = UpsertModel(metadataProviderWithGeneratedId)
@@ -220,5 +221,269 @@ class UpsertModelTest {
         assertTrue(updateColumns.any { column -> column.name == "description" })
         assertTrue(updateColumns.any { column -> column.name == "active" })
         assertFalse(updateColumns.any { column -> column.name == "id" })
+    }
+
+    /**
+     * Test getValueColumns with specific fields.
+     */
+    @Test
+    fun `should return specific value columns when fields are provided`() {
+        // Given
+        val fields = listOf("name", "active")
+
+        // When
+        val valueColumns = upsertModel.getValueColumns(fields)
+
+        // Then
+        assertEquals(2, valueColumns.size)
+        assertTrue(valueColumns.any { it.name == "name" })
+        assertTrue(valueColumns.any { it.name == "active" })
+        assertFalse(valueColumns.any { it.name == "id" })
+        assertFalse(valueColumns.any { it.name == "description" })
+    }
+
+    /**
+     * Test getValueColumns with empty fields returns default values.
+     */
+    @Test
+    fun `should return default values when fields list is empty`() {
+        // Given
+        val fields = emptyList<String>()
+
+        // When
+        val valueColumns = upsertModel.getValueColumns(fields)
+
+        // Then
+        assertEquals(4, valueColumns.size)
+        assertTrue(valueColumns.any { it.name == "id" })
+        assertTrue(valueColumns.any { it.name == "name" })
+        assertTrue(valueColumns.any { it.name == "description" })
+        assertTrue(valueColumns.any { it.name == "active" })
+    }
+
+    /**
+     * Test getOnColumns with specific fields.
+     */
+    @Test
+    fun `should return specific on columns when fields are provided`() {
+        // Given - for this test, we'll use name as an ON field (though normally it wouldn't be unique)
+        val fields = listOf("id")
+
+        // When
+        val onColumns = upsertModel.getOnColumns(fields)
+
+        // Then
+        assertEquals(1, onColumns.size)
+        assertTrue(onColumns.any { it.name == "id" })
+    }
+
+    /**
+     * Test getOnColumns with empty fields returns default on columns.
+     */
+    @Test
+    fun `should return default on columns when fields list is empty`() {
+        // Given
+        val fields = emptyList<String>()
+
+        // When
+        val onColumns = upsertModel.getOnColumns(fields)
+
+        // Then
+        assertEquals(1, onColumns.size)
+        assertTrue(onColumns.any { it.name == "id" })
+    }
+
+    /**
+     * Test getTableName returns correct table name.
+     */
+    @Test
+    fun `should return correct table name`() {
+        // When
+        val tableName = upsertModel.getTableName()
+
+        // Then
+        assertEquals("jpa_test_entity", tableName)
+    }
+
+    /**
+     * Test createUpsertInstance with ignoreAllFields set to true.
+     */
+    @Test
+    fun `should create upsert instance with ignore all fields`() {
+        // When
+        val upsertInstance = upsertModel.createUpsertInstance(
+            ignoreAllFields = true
+        )
+
+        // Then
+        assertEquals("jpa_test_entity", upsertInstance.tableName)
+        assertEquals(1, upsertInstance.onColumns.size)
+        assertEquals("id", upsertInstance.onColumns[0].name)
+        assertEquals(4, upsertInstance.values.size) // All values still included
+        assertEquals(0, upsertInstance.updateColumns.size) // No update columns when ignoring all
+    }
+
+    /**
+     * Test createUpsertInstance with specific ignore columns.
+     */
+    @Test
+    fun `should create upsert instance with specific ignore columns`() {
+        // When
+        val upsertInstance = upsertModel.createUpsertInstance(
+            ignoreColumns = listOf("description", "active")
+        )
+
+        // Then
+        assertEquals("jpa_test_entity", upsertInstance.tableName)
+        assertEquals(1, upsertInstance.onColumns.size)
+        assertEquals("id", upsertInstance.onColumns[0].name)
+        assertEquals(4, upsertInstance.values.size) // All values still included
+        assertEquals(1, upsertInstance.updateColumns.size) // Only name should be updated
+        assertTrue(upsertInstance.updateColumns.any { it.name == "name" })
+        assertFalse(upsertInstance.updateColumns.any { it.name == "description" })
+        assertFalse(upsertInstance.updateColumns.any { it.name == "active" })
+        assertFalse(upsertInstance.updateColumns.any { it.name == "id" })
+    }
+
+    /**
+     * Test createUpsertInstance with empty ignore columns list.
+     */
+    @Test
+    fun `should create upsert instance with empty ignore columns list`() {
+        // When
+        val upsertInstance = upsertModel.createUpsertInstance(
+            ignoreColumns = emptyList()
+        )
+
+        // Then
+        assertEquals("jpa_test_entity", upsertInstance.tableName)
+        assertEquals(1, upsertInstance.onColumns.size)
+        assertEquals("id", upsertInstance.onColumns[0].name)
+        assertEquals(4, upsertInstance.values.size)
+        assertEquals(3, upsertInstance.updateColumns.size) // All non-id columns should be updated
+        assertTrue(upsertInstance.updateColumns.any { it.name == "name" })
+        assertTrue(upsertInstance.updateColumns.any { it.name == "description" })
+        assertTrue(upsertInstance.updateColumns.any { it.name == "active" })
+    }
+
+    /**
+     * Test createUpsertInstance with conditional info.
+     */
+    @Test
+    fun `should create upsert instance with conditional info`() {
+        // Given
+        val conditionalInfo = ConditionalInfo(
+            fieldName = "version",
+            operator = ComparisonOperator.MORE_OR_EQUAL
+        )
+
+        // When
+        val upsertInstance = upsertModel.createUpsertInstance(
+            conditionalInfo = conditionalInfo
+        )
+
+        // Then
+        assertEquals("jpa_test_entity", upsertInstance.tableName)
+        assertEquals(conditionalInfo, upsertInstance.conditionalInfo)
+    }
+
+    /**
+     * Test UpsertInstance withoutValueColumns method.
+     */
+    @Test
+    fun `should create upsert instance without specific value columns`() {
+        // Given
+        val originalInstance = upsertModel.createUpsertInstance()
+        val columnsToExclude = listOf(nameColumn, activeColumn)
+
+        // When
+        val newInstance = originalInstance.withoutValueColumns(columnsToExclude)
+
+        // Then
+        assertEquals(originalInstance.tableName, newInstance.tableName)
+        assertEquals(originalInstance.onColumns, newInstance.onColumns)
+        assertEquals(originalInstance.updateColumns, newInstance.updateColumns)
+        assertEquals(originalInstance.conditionalInfo, newInstance.conditionalInfo)
+        
+        assertEquals(2, newInstance.values.size) // Should have id and description only
+        assertTrue(newInstance.values.any { it.name == "id" })
+        assertTrue(newInstance.values.any { it.name == "description" })
+        assertFalse(newInstance.values.any { it.name == "name" })
+        assertFalse(newInstance.values.any { it.name == "active" })
+    }
+
+    /**
+     * Test UpsertInstance forFirstUniqueConstraint method.
+     */
+    @Test
+    fun `should create upsert instance for first unique constraint`() {
+        // When
+        val originalInstance = upsertModelWithGeneratedId.createUpsertInstance()
+        val uniqueConstraintInstance = originalInstance.forFirstUniqueConstraint()
+
+        // Then
+        assertEquals(originalInstance.tableName, uniqueConstraintInstance.tableName)
+        assertEquals(originalInstance.values, uniqueConstraintInstance.values)
+        assertEquals(originalInstance.conditionalInfo, uniqueConstraintInstance.conditionalInfo)
+        
+        // Should use unique constraint (name) as ON columns
+        assertEquals(1, uniqueConstraintInstance.onColumns.size)
+        assertEquals("name", uniqueConstraintInstance.onColumns[0].name)
+        
+        // Update columns should exclude the unique constraint columns
+        assertFalse(uniqueConstraintInstance.updateColumns.any { it.name == "name" })
+        assertTrue(uniqueConstraintInstance.updateColumns.any { it.name == "description" })
+        assertTrue(uniqueConstraintInstance.updateColumns.any { it.name == "active" })
+    }
+
+    /**
+     * Test UpsertInstance forFirstUniqueConstraint throws exception when no unique constraints exist.
+     */
+    @Test
+    fun `should throw exception when no unique constraints found for forFirstUniqueConstraint`() {
+        // Given - upsertModel (not the WithGeneratedId version) has no unique constraints
+        val originalInstance = upsertModel.createUpsertInstance()
+
+        // When/Then
+        val exception = assertThrows(IllegalStateException::class.java) {
+            originalInstance.forFirstUniqueConstraint()
+        }
+        assertEquals("No unique constraints found", exception.message)
+    }
+
+    /**
+     * Test validation with missing ON columns.
+     */
+    @Test
+    fun `should throw exception when validating with missing ON columns`() {
+        // Given
+        val invalidColumn = ColumnInfo("missing", "missing", String::class.java, 12, false)
+        val values = listOf(idColumn, nameColumn)
+        val onColumns = listOf(invalidColumn) // Column not present in entity
+        val updateColumns = listOf(nameColumn)
+
+        // When/Then
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            upsertModel.validateUpsertQuery(values, onColumns, updateColumns)
+        }
+        assertTrue(exception.message!!.contains("missing"))
+    }
+
+    /**
+     * Test validation with missing update columns.
+     */
+    @Test
+    fun `should throw exception when validating with missing update columns`() {
+        // Given
+        val invalidColumn = ColumnInfo("missing", "missing", String::class.java, 12, false)
+        val values = listOf(idColumn, nameColumn)
+        val onColumns = listOf(idColumn)
+        val updateColumns = listOf(invalidColumn) // Column not present in entity
+
+        // When/Then
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            upsertModel.validateUpsertQuery(values, onColumns, updateColumns)
+        }
+        assertTrue(exception.message!!.contains("missing"))
     }
 }

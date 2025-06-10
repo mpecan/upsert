@@ -22,18 +22,12 @@ class UpsertRepositoryQuery(
         ?: throw IllegalArgumentException("Method ${method.name} is not a valid upsert method")
 
     override fun execute(parameters: Array<out Any>): Any {
-        // Check for collection parameter (should be first parameter for upsertAll)
-        if (parameters.isEmpty()) {
-            throw IllegalArgumentException("upsert* methods must have at least one parameter")
-        }
+        require(parameters.isNotEmpty()) { "upsert* methods must have at least one parameter" }
 
         try {
             // Execute the actual upsert logic based on the method name
             return if (upsertInfo.isUpsertAll) {
-                // Check if the first parameter is a collection
-                if (parameters[0] !is Collection<*>) {
-                    throw IllegalArgumentException("upsertAll* methods must have a collection as first parameter")
-                }
+                require(parameters[0] is Collection<*>) { "upsertAll* methods must have a collection as first parameter" }
 
                 @Suppress("UNCHECKED_CAST")
                 val entities = parameters[0] as Collection<Any>
@@ -75,6 +69,6 @@ class UpsertRepositoryQuery(
 
 
     override fun getQueryMethod(): QueryMethod {
-        return QueryMethod(method, metadata, factory)
+        return QueryMethod(method, metadata, factory, null)
     }
 }

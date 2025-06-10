@@ -12,6 +12,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: '0'
 
       # Cache Gradle Wrapper separately
     - name: Cache Gradle Wrapper
@@ -54,10 +56,9 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build with Gradle
-      run: ./gradlew build --build-cache
-
-    - name: Test
-      run: ./gradlew test --build-cache
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: ./gradlew build sonar --build-cache
 
     - name: Upload test results
       if: always()
