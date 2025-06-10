@@ -1,8 +1,10 @@
 package io.github.mpecan.upsert.type
 
 import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import org.springframework.core.annotation.Order
 import java.lang.reflect.Field
+import java.sql.Types
 
 /**
  * Type mapper for enum values that converts them to their ordinal values.
