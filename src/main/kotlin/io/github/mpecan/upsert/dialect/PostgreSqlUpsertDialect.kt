@@ -146,7 +146,7 @@ class PostgreSqlUpsertDialect(private val typeMapperRegistry: TypeMapperRegistry
         entities: List<T>
     ) {
         // Update entities with generated keys if needed
-        val keysList = keyHolder.keyList
+        val keysList = keyHolder.keyList.toList()
 
         if (keysList.isNotEmpty()) {
             // Find generated columns
@@ -154,7 +154,7 @@ class PostgreSqlUpsertDialect(private val typeMapperRegistry: TypeMapperRegistry
             entities.forEachIndexed { index, entity ->
                 val beanWrapperImpl = PropertyAccessorFactory.forDirectFieldAccess(entity)
                 if (index < keysList.size) {
-                    val keys = keysList[index]
+                    val keys = keysList[index].toMap()
                     generatedColumns.forEach { column ->
                         val key = keys[column.name]
                         if (key != null) {
