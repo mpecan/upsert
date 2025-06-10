@@ -19,6 +19,7 @@ all correct and functional.
 
 - Upsert a single entity or a list of entities
 - Support for custom ON clauses and ignored fields
+- Conditional upserts with comparison operators (>, >=, <, <=)
 - Compatible with Spring Data JPA repositories
 - Database-specific optimizations for MySQL and PostgreSQL
 - Automatic handling of generated keys
@@ -139,6 +140,41 @@ The method name is parsed to extract the following information:
 - `On<FieldName>`: The field(s) to use for the ON clause (e.g., `OnUsername`, `OnUsernameAndEmail`)
 - `Ignoring<FieldName>`: The field(s) to ignore during updates (e.g., `IgnoringUpdatedAt`)
 - `IgnoringAllFields`: Whether to ignore all fields during updates (only insert new rows)
+
+### Conditional Upserts
+
+Since version 1.3.0, the library supports conditional upserts using the `When` clause in method names. This allows you to specify conditions under which the update should occur, preventing updates when certain conditions are not met.
+
+You can use comparison operators to check field values:
+- `More` (>): Update only when the new value is greater than the existing value
+- `MoreOrEqual` (>=): Update only when the new value is greater than or equal to the existing value
+- `Less` (<): Update only when the new value is less than the existing value
+- `LessOrEqual` (<=): Update only when the new value is less than or equal to the existing value
+
+```kotlin
+interface UserRepository : UpsertRepository<User, Long> {
+    // Update only if the new updatedAt is more recent than the existing one
+    fun upsertOnIdWhenUpdatedAtMore(user: User): Int
+    
+    // Update only if the new version is greater than or equal to the existing one
+    fun upsertOnIdWhenVersionMoreOrEqual(user: User): Int
+    
+    // Update only if the new price is less than the existing one
+    fun upsertOnIdWhenPriceLess(user: User): Int
+    
+    // Combine conditional with ignored fields
+    fun upsertOnIdWhenVersionMoreIgnoringCreatedAt(user: User): Int
+    
+    // Batch operations with conditions
+    fun upsertAllOnIdWhenUpdatedAtMore(users: List<User>): Int
+}
+```
+
+This is particularly useful for:
+- **Optimistic locking**: Update only if the version number is higher
+- **Time-based updates**: Update only with more recent data
+- **Price protection**: Prevent accidental price increases
+- **Concurrent update protection**: Avoid overwriting newer data with older data
 
 ## Configuration
 
@@ -444,6 +480,16 @@ ON DUPLICATE KEY UPDATE
     email = VALUES(email)
 ```
 
+With conditional updates (MySQL 8.0.19+):
+```sql
+INSERT INTO users (id, username, email, version)
+VALUES (:id, :username, :email, :version)
+ON DUPLICATE KEY UPDATE
+    username = IF(VALUES(version) > version, VALUES(username), username),
+    email = IF(VALUES(version) > version, VALUES(email), email),
+    version = IF(VALUES(version) > version, VALUES(version), version)
+```
+
 [Learn more about MySQL implementation](docs/mysql.md)
 
 #### PostgreSQL
@@ -457,6 +503,17 @@ VALUES (:id, :username, :email)
 ON CONFLICT (id) DO UPDATE SET
     username = EXCLUDED.username,
     email = EXCLUDED.email
+```
+
+With conditional updates:
+```sql
+INSERT INTO users (id, username, email, updated_at)
+VALUES (:id, :username, :email, :updated_at)
+ON CONFLICT (id) DO UPDATE SET
+    username = EXCLUDED.username,
+    email = EXCLUDED.email,
+    updated_at = EXCLUDED.updated_at
+WHERE EXCLUDED.updated_at > users.updated_at
 ```
 
 [Learn more about PostgreSQL implementation](docs/postgresql.md)
