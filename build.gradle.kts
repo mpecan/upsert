@@ -102,21 +102,6 @@ tasks.test {
         showCauses = true
         showStackTraces = true
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-        
-        // Show detailed output only for failures
-        afterTest { desc, result ->
-            if (result.resultType == org.gradle.api.tasks.testing.TestResult.ResultType.FAILURE) {
-                // For failed tests, show all the details
-                println("\n=== FAILED TEST DETAILS ===")
-                println("Test: ${desc.className}.${desc.name}")
-                println("Result: ${result.resultType}")
-                result.exceptions.forEach { exception ->
-                    println("\nException:")
-                    exception.printStackTrace()
-                }
-                println("=========================\n")
-            }
-        }
     }
     
     // Generate detailed test reports
