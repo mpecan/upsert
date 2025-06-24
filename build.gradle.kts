@@ -2,7 +2,7 @@ import com.vanniktech.maven.publish.SonatypeHost
 import java.time.Duration
 
 plugins {
-    kotlin("jvm") version "2.1.21"
+    kotlin("jvm") version "2.2.0"
     kotlin("plugin.spring") version "2.2.0"
     id("org.springframework.boot") version "3.5.0"
     id("io.spring.dependency-management") version "1.1.7"
