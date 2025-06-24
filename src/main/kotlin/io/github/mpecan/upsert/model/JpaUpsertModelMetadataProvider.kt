@@ -132,6 +132,7 @@ class JpaUpsertModelMetadataProvider(
                     // Only continue searching if the parent class is annotated with @MappedSuperclass
                     // or if we're still in the entity hierarchy (not reached Object class)
                     currentClass = when {
+                        superClass == null -> null
                         superClass.isAnnotationPresent(MappedSuperclass::class.java) -> superClass
                         // Continue searching even if not @MappedSuperclass to handle complex hierarchies
                         currentClass == clazz -> superClass // Allow first level up for entity inheritance
