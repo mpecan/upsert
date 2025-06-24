@@ -23,7 +23,7 @@ data class TestJsonEntity(
     val name: String,
 
     // Explicit JSON field via column definition
-    @Column(columnDefinition = "jsonb")
+    @Column(columnDefinition = "json")
     @JdbcTypeCode(SqlTypes.JSON)
     val attributes: Map<String, String>,
 

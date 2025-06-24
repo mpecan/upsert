@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
  * Test application for PostgreSQL repository integration tests.
  */
 @SpringBootApplication
-@EntityScan("io.github.mpecan.upsert.entity")
+@EntityScan("io.github.mpecan.upsert.entity", "io.github.mpecan.upsert.type.json")
 @EnableJpaRepositories(
     basePackages = ["io.github.mpecan.upsert.integration"],
 )
