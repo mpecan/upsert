@@ -13,7 +13,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 @SpringBootApplication
 @EntityScan("io.github.mpecan.upsert.entity", "io.github.mpecan.upsert.type.json")
 @EnableJpaRepositories(
-    basePackages = ["io.github.mpecan.upsert.integration"],
+    basePackages = ["io.github.mpecan.upsert.integration", "io.github.mpecan.upsert.repository"],
 )
 class TestApplication {
 
