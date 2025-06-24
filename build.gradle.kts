@@ -94,7 +94,19 @@ tasks.test {
     }
 
     testLogging {
-        events("passed", "skipped", "failed")
+        events("passed", "skipped", "failed", "started")
+        showStandardStreams = true
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        displayGranularity = 2
+    }
+    
+    // Generate detailed test reports
+    reports {
+        html.required.set(true)
+        junitXml.required.set(true)
     }
     
     finalizedBy(tasks.jacocoTestReport)
