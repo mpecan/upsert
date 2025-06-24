@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/mpecan/upsert/compare/v1.4.0...v1.5.0) (2025-06-24)
+
+
+### Features
+
+* Add @MappedSuperclass support for JPA entities ([#66](https://github.com/mpecan/upsert/issues/66)) ([14c6583](https://github.com/mpecan/upsert/commit/14c6583c8e84f00714e1176272e6688c179ecc72))
+
 ## [1.4.0](https://github.com/mpecan/upsert/compare/v1.3.0...v1.4.0) (2025-06-10)
 
 
