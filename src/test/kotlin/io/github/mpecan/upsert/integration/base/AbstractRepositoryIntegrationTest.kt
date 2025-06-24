@@ -36,7 +36,14 @@ abstract class AbstractRepositoryIntegrationTest {
     fun setUp() {
         try {
             // Clear the tables before each test
-            jdbcTemplate.execute("DELETE FROM jpa_test_entity")
+            listOf(
+                "jpa_test_entity",
+                "extended_test_entity",
+                "jpa_test_entity_with_converter",
+                "jpa_test_entity_with_generated_id"
+            ).forEach { tableName ->
+                jdbcTemplate.execute("DELETE FROM $tableName")
+            }
             logger.info("Tables cleared successfully")
         } catch (e: Exception) {
             logger.error("Error clearing tables", e)

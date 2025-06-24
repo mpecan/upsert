@@ -3,10 +3,12 @@ package io.github.mpecan.upsert.model
 import io.github.mpecan.upsert.type.TypeMapperRegistry
 import jakarta.persistence.Column
 import jakarta.persistence.GeneratedValue
+import jakarta.persistence.MappedSuperclass
 import jakarta.persistence.PersistenceUnitUtil
 import jakarta.persistence.metamodel.Metamodel
 import org.springframework.data.jpa.repository.support.JpaEntityInformation
 import org.springframework.data.jpa.repository.support.JpaMetamodelEntityInformation
+import java.lang.reflect.Field
 
 /**
  * Implementation of UpsertModelMetadataProvider that uses JPA metadata.
@@ -37,7 +39,8 @@ class JpaUpsertModelMetadataProvider(
             JpaMetamodelEntityInformation(entityClass, metamodel, persistenceUnitUtil)
 
         columns = entityMetadata.attributes.filter { it.isAssociation.not() }.map {
-            val field = it.declaringType.javaType.getDeclaredField(it.name)
+            val field = findFieldInClassHierarchy(entityClass, it.name)
+                ?: throw NoSuchFieldException("Field '${it.name}' not found in class hierarchy of ${entityClass.name}")
             val isGenerated = field.annotations.any { annotation -> annotation is GeneratedValue }
 
             val columnName = when {
@@ -102,4 +105,43 @@ class JpaUpsertModelMetadataProvider(
         uniqueConstraints.map { it.toList() }
 
     override fun getEntityClass(): Class<out Any> = entityClass
+
+    companion object {
+        /**
+         * Finds a field in the class hierarchy, including fields from @MappedSuperclass parent classes.
+         * This method searches through the entire inheritance chain, starting from the given class
+         * and moving up through parent classes that are annotated with @MappedSuperclass.
+         *
+         * @param clazz The class to start searching from
+         * @param fieldName The name of the field to find
+         * @return The field if found, null otherwise
+         */
+        internal fun findFieldInClassHierarchy(clazz: Class<*>, fieldName: String): Field? {
+            var currentClass: Class<*>? = clazz
+
+            while (currentClass != null) {
+                try {
+                    // Try to find the field in the current class
+                    val field = currentClass.getDeclaredField(fieldName)
+                    field.isAccessible = true
+                    return field
+                } catch (_: NoSuchFieldException) {
+                    // Field not found in current class, check parent class
+                    val superClass = currentClass.superclass
+
+                    // Only continue searching if the parent class is annotated with @MappedSuperclass
+                    // or if we're still in the entity hierarchy (not reached Object class)
+                    currentClass = when {
+                        superClass == null -> null
+                        superClass.isAnnotationPresent(MappedSuperclass::class.java) -> superClass
+                        // Continue searching even if not @MappedSuperclass to handle complex hierarchies
+                        currentClass == clazz -> superClass // Allow first level up for entity inheritance
+                        else -> null
+                    }
+                }
+            }
+
+            return null
+        }
+    }
 }
