@@ -9,4 +9,12 @@ import org.springframework.data.jpa.repository.JpaRepository
  * This interface extends both UpsertRepository (for upsert operations) and JpaRepository (for saveAll operations).
  */
 interface PerformanceTestRepository : UpsertRepository<PerformanceTestEntity, Long>,
-    JpaRepository<PerformanceTestEntity, Long>
+    JpaRepository<PerformanceTestEntity, Long> {
+    
+    // Conditional upsert methods for performance testing
+    fun upsertOnIdWhenUpdatedAtMore(entity: PerformanceTestEntity): PerformanceTestEntity
+    fun upsertAllOnIdWhenUpdatedAtMore(entities: List<PerformanceTestEntity>): List<PerformanceTestEntity>
+    
+    fun upsertOnIdWhenCounterMoreOrEqual(entity: PerformanceTestEntity): PerformanceTestEntity
+    fun upsertAllOnIdWhenCounterMoreOrEqual(entities: List<PerformanceTestEntity>): List<PerformanceTestEntity>
+}

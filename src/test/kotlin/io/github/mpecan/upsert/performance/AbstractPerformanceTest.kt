@@ -231,4 +231,269 @@ abstract class AbstractPerformanceTest {
             )
         }
     }
+
+    /**
+     * Test the performance of conditional upserts (timestamp-based) vs. retrieving and filtering before saveAll.
+     * This test simulates the common pattern of "update only if newer".
+     */
+    @ParameterizedTest
+    @ValueSource(ints = [10, 100, 1000])
+    fun `test conditional upsert timestamp performance - update if newer`(size: Int) {
+        // Generate initial entities with older timestamps
+        val baseTime = LocalDateTime.now()
+        val initialEntities = generateEntities(size).map { entity ->
+            entity.copy(updatedAt = baseTime.minusHours(2))
+        }
+
+        // Generate update entities with mixed timestamps
+        val updateEntities = generateEntities(size).mapIndexed { index, entity ->
+            when {
+                index % 3 == 0 -> entity.copy(
+                    name = "Should NOT Update ${entity.id}",
+                    updatedAt = baseTime.minusHours(3) // Older - should not update
+                )
+                else -> entity.copy(
+                    name = "Should Update ${entity.id}",
+                    updatedAt = baseTime.minusHours(1) // Newer - should update
+                )
+            }
+        }
+
+        // Run the performance test
+        PerformanceTestUtils.runPerformanceTest(
+            testName = "Conditional Upsert (Timestamp)",
+            databaseType = databaseType,
+            entityCount = size,
+            repetitions = 10,
+            logger = logger,
+            setupFn = {
+                // Insert initial entities
+                performanceTestRepository.saveAll(initialEntities)
+            },
+            upsertFn = {
+                // Use conditional upsert
+                performanceTestRepository.upsertAllOnIdWhenUpdatedAtMore(updateEntities)
+            },
+            saveAllFn = {
+                // Retrieve existing, filter, and saveAll
+                val existingMap = performanceTestRepository.findAllById(updateEntities.map { it.id })
+                    .associateBy { it.id }
+                
+                val entitiesToUpdate = updateEntities.filter { updateEntity ->
+                    val existing = existingMap[updateEntity.id]
+                    existing == null || updateEntity.updatedAt.isAfter(existing.updatedAt)
+                }
+                
+                performanceTestRepository.saveAll(entitiesToUpdate)
+            },
+            cleanupFn = {
+                jdbcTemplate.execute("DELETE FROM performance_test_entity")
+            }
+        )
+    }
+
+    /**
+     * Test the performance of conditional upserts (version-based) vs. retrieving and filtering before saveAll.
+     * This test simulates optimistic locking patterns.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = [10, 100, 1000])
+    fun `test conditional upsert version performance - update if version greater or equal`(size: Int) {
+        // Generate initial entities with version 1
+        val initialEntities = generateEntities(size).map { entity ->
+            entity.copy(counter = 1) // Using counter as version
+        }
+
+        // Generate update entities with mixed versions
+        val updateEntities = generateEntities(size).mapIndexed { index, entity ->
+            when {
+                index % 3 == 0 -> entity.copy(
+                    name = "Should NOT Update ${entity.id}",
+                    counter = 0 // Lower version - should not update
+                )
+                index % 3 == 1 -> entity.copy(
+                    name = "Should Update Equal ${entity.id}",
+                    counter = 1 // Equal version - should update
+                )
+                else -> entity.copy(
+                    name = "Should Update Higher ${entity.id}",
+                    counter = 2 // Higher version - should update
+                )
+            }
+        }
+
+        // Run the performance test
+        PerformanceTestUtils.runPerformanceTest(
+            testName = "Conditional Upsert (Version)",
+            databaseType = databaseType,
+            entityCount = size,
+            repetitions = 10,
+            logger = logger,
+            setupFn = {
+                // Insert initial entities
+                performanceTestRepository.saveAll(initialEntities)
+            },
+            upsertFn = {
+                // Use conditional upsert
+                performanceTestRepository.upsertAllOnIdWhenCounterMoreOrEqual(updateEntities)
+            },
+            saveAllFn = {
+                // Retrieve existing, filter, and saveAll
+                val existingMap = performanceTestRepository.findAllById(updateEntities.map { it.id })
+                    .associateBy { it.id }
+                
+                val entitiesToUpdate = updateEntities.filter { updateEntity ->
+                    val existing = existingMap[updateEntity.id]
+                    existing == null || updateEntity.counter >= existing.counter
+                }
+                
+                performanceTestRepository.saveAll(entitiesToUpdate)
+            },
+            cleanupFn = {
+                jdbcTemplate.execute("DELETE FROM performance_test_entity")
+            }
+        )
+    }
+
+    /**
+     * Test the performance impact of conditional upserts with high contention.
+     * This simulates scenarios where many updates fail the condition.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = [10, 100, 1000])
+    fun `test conditional upsert high contention performance`(size: Int) {
+        // Generate initial entities with recent timestamps
+        val baseTime = LocalDateTime.now()
+        val initialEntities = generateEntities(size).map { entity ->
+            entity.copy(updatedAt = baseTime)
+        }
+
+        // Generate update entities where 90% will fail the condition
+        val updateEntities = generateEntities(size).mapIndexed { index, entity ->
+            when {
+                index % 10 == 0 -> entity.copy(
+                    name = "Should Update ${entity.id}",
+                    updatedAt = baseTime.plusHours(1) // Only 10% are newer
+                )
+                else -> entity.copy(
+                    name = "Should NOT Update ${entity.id}",
+                    updatedAt = baseTime.minusHours(1) // 90% are older
+                )
+            }
+        }
+
+        // Run the performance test
+        PerformanceTestUtils.runPerformanceTest(
+            testName = "Conditional Upsert (High Contention)",
+            databaseType = databaseType,
+            entityCount = size,
+            repetitions = 10,
+            logger = logger,
+            setupFn = {
+                // Insert initial entities
+                performanceTestRepository.saveAll(initialEntities)
+            },
+            upsertFn = {
+                // Use conditional upsert
+                performanceTestRepository.upsertAllOnIdWhenUpdatedAtMore(updateEntities)
+            },
+            saveAllFn = {
+                // Retrieve existing, filter, and saveAll
+                val existingMap = performanceTestRepository.findAllById(updateEntities.map { it.id })
+                    .associateBy { it.id }
+                
+                val entitiesToUpdate = updateEntities.filter { updateEntity ->
+                    val existing = existingMap[updateEntity.id]
+                    existing == null || updateEntity.updatedAt.isAfter(existing.updatedAt)
+                }
+                
+                performanceTestRepository.saveAll(entitiesToUpdate)
+            },
+            cleanupFn = {
+                jdbcTemplate.execute("DELETE FROM performance_test_entity")
+            }
+        )
+    }
+
+    /**
+     * Test the performance of conditional upserts in mixed insert/update scenarios.
+     * This simulates real-world usage where some entities exist and some don't.
+     */
+    @ParameterizedTest
+    @ValueSource(ints = [10, 100, 1000])
+    fun `test conditional upsert mixed insert-update performance`(size: Int) {
+        val halfSize = size / 2
+        val baseTime = LocalDateTime.now()
+
+        // Generate initial entities (only half will exist)
+        val initialEntities = generateEntities(halfSize).map { entity ->
+            entity.copy(updatedAt = baseTime.minusHours(2))
+        }
+
+        // Generate mixed entities for upsert
+        val mixedEntities = mutableListOf<PerformanceTestEntity>()
+        
+        // First half: updates to existing entities with mixed timestamps
+        mixedEntities.addAll(generateEntities(halfSize).mapIndexed { index, entity ->
+            when {
+                index % 3 == 0 -> entity.copy(
+                    name = "Update Older ${entity.id}",
+                    updatedAt = baseTime.minusHours(3) // Should not update
+                )
+                else -> entity.copy(
+                    name = "Update Newer ${entity.id}",
+                    updatedAt = baseTime.minusHours(1) // Should update
+                )
+            }
+        })
+        
+        // Second half: new entities
+        mixedEntities.addAll(generateEntities(halfSize, halfSize + 1L).map { entity ->
+            entity.copy(
+                name = "New Entity ${entity.id}",
+                updatedAt = baseTime
+            )
+        })
+
+        // Run the performance test
+        PerformanceTestUtils.runPerformanceTest(
+            testName = "Conditional Upsert (Mixed Insert/Update)",
+            databaseType = databaseType,
+            entityCount = size,
+            repetitions = 10,
+            logger = logger,
+            setupFn = {
+                // Insert initial entities (only half)
+                performanceTestRepository.saveAll(initialEntities)
+            },
+            upsertFn = {
+                // Use conditional upsert
+                performanceTestRepository.upsertAllOnIdWhenUpdatedAtMore(mixedEntities)
+            },
+            saveAllFn = {
+                // Retrieve existing, filter updates, combine with inserts
+                val existingIds = mixedEntities.take(halfSize).map { it.id }
+                val existingMap = performanceTestRepository.findAllById(existingIds)
+                    .associateBy { it.id }
+                
+                val entitiesToSave = mutableListOf<PerformanceTestEntity>()
+                
+                // Process potential updates
+                mixedEntities.take(halfSize).forEach { updateEntity ->
+                    val existing = existingMap[updateEntity.id]
+                    if (existing == null || updateEntity.updatedAt.isAfter(existing.updatedAt)) {
+                        entitiesToSave.add(updateEntity)
+                    }
+                }
+                
+                // Add all new entities
+                entitiesToSave.addAll(mixedEntities.drop(halfSize))
+                
+                performanceTestRepository.saveAll(entitiesToSave)
+            },
+            cleanupFn = {
+                jdbcTemplate.execute("DELETE FROM performance_test_entity")
+            }
+        )
+    }
 }
