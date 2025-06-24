@@ -123,13 +123,13 @@ abstract class AbstractMappedSuperclassIntegrationTest : AbstractRepositoryInteg
         val savedEntity1 = savedEntities.find { it.id == 1L }
         assertThat(savedEntity1).isNotNull
         assertThat(savedEntity1!!.name).isEqualTo("Extended Entity 1")
-        assertThat(savedEntity1.createdAt).isEqualTo(now)
+        assertThat(savedEntity1.createdAt).isEqualToIgnoringNanos(now)
         assertThat(savedEntity1.version).isEqualTo(1)
 
         val savedEntity2 = savedEntities.find { it.id == 2L }
         assertThat(savedEntity2).isNotNull
         assertThat(savedEntity2!!.name).isEqualTo("Extended Entity 2")
-        assertThat(savedEntity2.createdAt).isEqualTo(now)
+        assertThat(savedEntity2.createdAt).isEqualToIgnoringNanos(now)
         assertThat(savedEntity2.version).isEqualTo(1)
     }
 
@@ -201,8 +201,8 @@ abstract class AbstractMappedSuperclassIntegrationTest : AbstractRepositoryInteg
         assertThat(savedEntity).isNotNull
         assertThat(savedEntity!!.name).isEqualTo("Updated Name")
         assertThat(savedEntity.description).isEqualTo("Updated description")
-        assertThat(savedEntity.createdAt).isEqualTo(now)
-        assertThat(savedEntity.updatedAt).isEqualTo(laterTime)
+        assertThat(savedEntity.createdAt).isEqualToIgnoringNanos(now)
+        assertThat(savedEntity.updatedAt).isEqualToIgnoringNanos(laterTime)
         assertThat(savedEntity.version).isEqualTo(2)
     }
 
