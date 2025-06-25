@@ -24,6 +24,7 @@ all correct and functional.
 - Database-specific optimizations for MySQL and PostgreSQL
 - Automatic handling of generated keys
 - Batch operation support for improved performance
+- Support for @MappedSuperclass inheritance
 
 ## What is Upsert?
 
@@ -175,6 +176,47 @@ This is particularly useful for:
 - **Time-based updates**: Update only with more recent data
 - **Price protection**: Prevent accidental price increases
 - **Concurrent update protection**: Avoid overwriting newer data with older data
+
+### @MappedSuperclass Support
+
+Since version 1.5.0, the library fully supports entities that inherit fields from classes annotated with `@MappedSuperclass`. This allows you to define common fields in a base class and have them properly recognized during upsert operations.
+
+```kotlin
+@MappedSuperclass
+abstract class BaseEntity(
+    @Column(name = "created_at")
+    open val createdAt: LocalDateTime = LocalDateTime.now(),
+    
+    @Column(name = "updated_at")
+    open val updatedAt: LocalDateTime = LocalDateTime.now(),
+    
+    @Column(name = "version")
+    open val version: Int = 1
+)
+
+@Entity
+@Table(name = "users", uniqueConstraints = [UniqueConstraint(columnNames = ["username"])])
+class User(
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long? = null,
+    
+    @Column(unique = true)
+    val username: String,
+    
+    val email: String,
+    
+    // Inherited fields from BaseEntity
+    createdAt: LocalDateTime = LocalDateTime.now(),
+    updatedAt: LocalDateTime = LocalDateTime.now(),
+    version: Int = 1
+) : BaseEntity(createdAt, updatedAt, version)
+```
+
+The library automatically discovers fields from parent classes annotated with `@MappedSuperclass`, allowing you to:
+- Define common audit fields (createdAt, updatedAt) in a base class
+- Implement versioning for optimistic locking
+- Share common fields across multiple entities
+- Use all upsert features with inherited fields
 
 ## Configuration
 
