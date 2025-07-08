@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/mpecan/upsert/compare/v1.5.0...v1.5.1) (2025-07-08)
+
+
+### Bug Fixes
+
+* **deps:** update dependency org.xerial:sqlite-jdbc to v3.50.2.0 ([#71](https://github.com/mpecan/upsert/issues/71)) ([ff14219](https://github.com/mpecan/upsert/commit/ff142190bb9651a7315e555d306e1e223a58d379))
+
 ## [1.5.0](https://github.com/mpecan/upsert/compare/v1.4.0...v1.5.0) (2025-06-24)
 
 
