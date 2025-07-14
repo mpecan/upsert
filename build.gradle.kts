@@ -8,7 +8,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("java-library")
     id("signing")
-    id("com.vanniktech.maven.publish") version "0.33.0"
+    id("com.vanniktech.maven.publish") version "0.34.0"
     id("org.sonarqube") version "6.2.0.5505"
     id("jacoco")
 }
