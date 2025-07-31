@@ -26,7 +26,7 @@ repositories {
     mavenCentral()
 }
 
-val sqliteVersion = "3.50.2.0"
+val sqliteVersion = "3.50.3.0"
 val mockitoKotlinVersion = "6.0.0"
 
 dependencies {
