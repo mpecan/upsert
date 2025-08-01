@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.2](https://github.com/mpecan/upsert/compare/v1.5.1...v1.5.2) (2025-08-01)
+
+
+### Bug Fixes
+
+* **deps:** update dependency org.mockito.kotlin:mockito-kotlin to v6 ([#77](https://github.com/mpecan/upsert/issues/77)) ([7ee52c4](https://github.com/mpecan/upsert/commit/7ee52c41c050a1305891f647c18af3e1bdef1f12))
+* **deps:** update dependency org.xerial:sqlite-jdbc to v3.50.3.0 ([#78](https://github.com/mpecan/upsert/issues/78)) ([daea481](https://github.com/mpecan/upsert/commit/daea48137329c4da9aa54906e4a33ff460ac4201))
+
 ## [1.5.1](https://github.com/mpecan/upsert/compare/v1.5.0...v1.5.1) (2025-07-08)
 
 
