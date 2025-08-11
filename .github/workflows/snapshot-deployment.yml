@@ -14,7 +14,7 @@ jobs:
     outputs:
       is_snapshot: ${{ steps.check-version.outputs.is_snapshot }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check if version is SNAPSHOT
         id: check-version
@@ -35,7 +35,7 @@ jobs:
     if: ${{ needs.check-snapshot.outputs.is_snapshot == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Cache Gradle Wrapper separately
       - name: Cache Gradle Wrapper
