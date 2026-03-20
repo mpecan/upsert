@@ -27,7 +27,7 @@ repositories {
 }
 
 val sqliteVersion = "3.50.3.0"
-val mockitoKotlinVersion = "6.0.0"
+val mockitoKotlinVersion = "6.3.0"
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter")
