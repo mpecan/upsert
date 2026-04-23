@@ -3,7 +3,7 @@ import java.time.Duration
 
 plugins {
     kotlin("jvm") version "2.2.0"
-    kotlin("plugin.spring") version "2.2.0"
+    kotlin("plugin.spring") version "2.3.21"
     id("org.springframework.boot") version "3.5.4"
     id("io.spring.dependency-management") version "1.1.7"
     id("java-library")
