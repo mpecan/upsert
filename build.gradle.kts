@@ -9,7 +9,7 @@ plugins {
     id("java-library")
     id("signing")
     id("com.vanniktech.maven.publish") version "0.33.0"
-    id("org.sonarqube") version "6.2.0.5505"
+    id("org.sonarqube") version "7.5.0.8588"
     id("jacoco")
 }
 
